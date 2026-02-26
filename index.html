@@ -1,0 +1,2767 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>五行 Five Elements</title>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;600;900&family=Cormorant+Garamond:ital,wght@0,300;0,500;1,300&display=swap');
+
+    :root {
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --metal: #d4af37;
+      --wood: #4c994c;
+      --water: #4682c8;
+      --fire: #dc3c28;
+      --earth: #8B5E3C;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      height: -webkit-fill-available;
+      overflow: hidden;
+      font-family: 'Cormorant Garamond', serif;
+      background: #0a0a0a;
+      color: #fff;
+    }
+
+    /* ═══════════════════════════════════
+     PERMISSION OVERLAY
+     ═══════════════════════════════════ */
+    .permission-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 40px;
+      padding-top: calc(40px + var(--safe-top));
+      text-align: center;
+    }
+
+    .permission-overlay.hidden {
+      display: none;
+    }
+
+    .permission-overlay h2 {
+      font-family: 'Noto Serif SC', serif;
+      font-weight: 300;
+      font-size: clamp(1.2rem, 5vw, 1.5rem);
+      margin-bottom: 12px;
+    }
+
+    .permission-overlay p {
+      font-weight: 300;
+      font-style: italic;
+      opacity: 0.6;
+      margin-bottom: 20px;
+      line-height: 1.6;
+      font-size: clamp(0.75rem, 3vw, 0.9rem);
+    }
+
+    .setup-hint {
+      font-weight: 300;
+      font-style: italic;
+      opacity: 0.35;
+      margin-bottom: 24px;
+      font-size: clamp(1rem, 4vw, 1.2rem);
+      letter-spacing: 0.08em;
+    }
+
+    .permission-btn {
+      padding: 14px 40px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1rem;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .permission-btn:active {
+      background: rgba(255, 255, 255, 0.15);
+      transform: scale(0.95);
+    }
+
+    .permission-status {
+      margin-top: 16px;
+      font-size: 0.7rem;
+      opacity: 0.35;
+      font-style: italic;
+    }
+
+    /* ═══════════════════════════════════
+     LANDING
+     ═══════════════════════════════════ */
+    #landing {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      height: -webkit-fill-available;
+      padding: 20px;
+      background: #0a0a0a;
+      position: relative;
+    }
+
+    .circle-layout {
+      position: relative;
+      width: min(80vw, 80vh, 360px);
+      height: min(80vw, 80vh, 360px);
+    }
+
+    .circle-ring {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 85%;
+      height: 85%;
+      transform: translate(-50%, -50%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .energy-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .circle-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 5;
+      cursor: pointer;
+      padding: 16px;
+    }
+
+    .circle-center h1 {
+      font-family: 'Noto Serif SC', serif;
+      font-weight: 300;
+      font-size: clamp(1.4rem, 5vw, 2rem);
+      letter-spacing: 0.25em;
+      opacity: 0;
+      animation: fadeIn 1s ease 0.2s forwards;
+      transition: opacity 0.3s ease;
+    }
+
+    .circle-center .subtitle {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 300;
+      font-style: italic;
+      font-size: clamp(0.65rem, 2.5vw, 0.85rem);
+      letter-spacing: 0.12em;
+      color: rgba(255, 255, 255, 0.4);
+      margin-top: 2px;
+      opacity: 0;
+      animation: fadeIn 1s ease 0.5s forwards;
+    }
+
+    .circle-el {
+      position: absolute;
+      width: clamp(52px, 16vw, 68px);
+      height: clamp(52px, 16vw, 68px);
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.03);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transform: translate(-50%, -50%);
+      opacity: 0;
+      animation: fadeIn 0.6s ease forwards;
+      gap: 1px;
+      z-index: 10;
+      transition: top 0.7s cubic-bezier(0.4, 0, 0.2, 1), left 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .circle-el:active {
+      filter: brightness(1.3);
+    }
+
+    .circle-el .char {
+      font-family: 'Noto Serif SC', serif;
+      font-size: clamp(1.1rem, 4vw, 1.5rem);
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .circle-el .elname {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(0.45rem, 1.8vw, 0.55rem);
+      font-weight: 300;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.5;
+    }
+
+    .circle-el:nth-child(1) {
+      animation-delay: 0.4s;
+    }
+
+    .circle-el:nth-child(2) {
+      animation-delay: 0.5s;
+    }
+
+    .circle-el:nth-child(3) {
+      animation-delay: 0.6s;
+    }
+
+    .circle-el:nth-child(4) {
+      animation-delay: 0.7s;
+    }
+
+    .circle-el:nth-child(5) {
+      animation-delay: 0.8s;
+    }
+
+    .circle-el.c-metal {
+      border-color: rgba(212, 175, 55, 0.3);
+      animation: fadeIn 0.6s ease forwards, breatheMetal 4s ease-in-out infinite alternate;
+    }
+
+    @keyframes breatheMetal {
+      from {
+        box-shadow: 0 0 4px rgba(212, 175, 55, 0.05);
+      }
+
+      to {
+        box-shadow: 0 0 16px rgba(212, 175, 55, 0.25);
+      }
+    }
+
+    .circle-el.c-metal .char {
+      color: var(--metal);
+    }
+
+    .circle-el.c-wood {
+      border-color: rgba(76, 153, 76, 0.3);
+      animation: fadeIn 0.6s ease forwards, breatheWood 4s ease-in-out infinite alternate 0.5s;
+    }
+
+    @keyframes breatheWood {
+      from {
+        box-shadow: 0 0 4px rgba(76, 153, 76, 0.05);
+      }
+
+      to {
+        box-shadow: 0 0 16px rgba(76, 153, 76, 0.25);
+      }
+    }
+
+    .circle-el.c-wood .char {
+      color: var(--wood);
+    }
+
+    .circle-el.c-water {
+      border-color: rgba(70, 130, 200, 0.3);
+      animation: fadeIn 0.6s ease forwards, breatheWater 4s ease-in-out infinite alternate 1s;
+    }
+
+    @keyframes breatheWater {
+      from {
+        box-shadow: 0 0 4px rgba(70, 130, 200, 0.05);
+      }
+
+      to {
+        box-shadow: 0 0 16px rgba(70, 130, 200, 0.25);
+      }
+    }
+
+    .circle-el.c-water .char {
+      color: var(--water);
+    }
+
+    .circle-el.c-fire {
+      border-color: rgba(220, 60, 40, 0.3);
+      animation: fadeIn 0.6s ease forwards, breatheFire 4s ease-in-out infinite alternate 1.5s;
+    }
+
+    @keyframes breatheFire {
+      from {
+        box-shadow: 0 0 4px rgba(220, 60, 40, 0.05);
+      }
+
+      to {
+        box-shadow: 0 0 16px rgba(220, 60, 40, 0.25);
+      }
+    }
+
+    .circle-el.c-fire .char {
+      color: var(--fire);
+    }
+
+    .circle-el.c-earth {
+      border-color: rgba(139, 94, 60, 0.3);
+      animation: fadeIn 0.6s ease forwards, breatheEarth 4s ease-in-out infinite alternate 2s;
+    }
+
+    @keyframes breatheEarth {
+      from {
+        box-shadow: 0 0 4px rgba(139, 94, 60, 0.05);
+      }
+
+      to {
+        box-shadow: 0 0 16px rgba(139, 94, 60, 0.25);
+      }
+    }
+
+    .circle-el.c-earth .char {
+      color: var(--earth);
+    }
+
+    /* ═══════════════════════════════════
+     SHARED
+     ═══════════════════════════════════ */
+    .element-page {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .element-page.active {
+      display: flex;
+    }
+
+    .bg-char {
+      position: absolute;
+      top: 46%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: 'Noto Serif SC', serif;
+      font-weight: 900;
+      font-size: min(70vw, 60vh);
+      opacity: 0.06;
+      pointer-events: none;
+      user-select: none;
+      z-index: 0;
+    }
+
+    .interaction-area {
+      flex: 1;
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding-top: var(--safe-top);
+      padding-bottom: calc(60px + var(--safe-bottom));
+    }
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: calc(56px + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+      display: flex;
+      z-index: 200;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: rgba(255, 255, 255, 0.25);
+      font-family: 'Noto Serif SC', serif;
+      font-size: clamp(1rem, 5vw, 1.3rem);
+      font-weight: 900;
+      transition: all 0.25s ease;
+      position: relative;
+    }
+
+    .nav-item .nav-label {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(0.4rem, 1.8vw, 0.5rem);
+      font-weight: 300;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      opacity: 0.5;
+    }
+
+    .nav-item.active {
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .nav-item.active::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 25%;
+      right: 25%;
+      height: 2px;
+      border-radius: 1px;
+    }
+
+    .nav-item.metal.active {
+      color: var(--metal);
+    }
+
+    .nav-item.metal.active::before {
+      background: var(--metal);
+    }
+
+    .nav-item.wood.active {
+      color: var(--wood);
+    }
+
+    .nav-item.wood.active::before {
+      background: var(--wood);
+    }
+
+    .nav-item.water.active {
+      color: var(--water);
+    }
+
+    .nav-item.water.active::before {
+      background: var(--water);
+    }
+
+    .nav-item.fire.active {
+      color: var(--fire);
+    }
+
+    .nav-item.fire.active::before {
+      background: var(--fire);
+    }
+
+    .nav-item.earth.active {
+      color: var(--earth);
+    }
+
+    .nav-item.earth.active::before {
+      background: var(--earth);
+    }
+
+    .home-btn {
+      position: absolute;
+      top: calc(12px + var(--safe-top));
+      left: 12px;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .home-btn:active {
+      transform: scale(0.9);
+      background: rgba(0, 0, 0, 0.6);
+    }
+
+    .cue-visible {
+      opacity: 0.45;
+      transition: opacity 0.8s ease;
+    }
+
+    .cue-hidden {
+      opacity: 0 !important;
+      transition: opacity 0.5s ease;
+      pointer-events: none;
+    }
+
+    /* ═══════════════════════════════════
+     METAL
+     ═══════════════════════════════════ */
+    #metal-page {
+      background: radial-gradient(ellipse at 50% 40%, #1a1812 0%, #0d0c08 100%);
+    }
+
+    #metal-page .bg-char {
+      color: var(--metal);
+    }
+
+    .metal-ring-visual {
+      width: clamp(140px, 40vw, 180px);
+      height: clamp(140px, 40vw, 180px);
+      border: 2.5px solid rgba(212, 175, 55, 0.45);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .metal-ring-visual.shaking {
+      border-color: rgba(212, 175, 55, 0.8);
+      box-shadow: 0 0 40px rgba(212, 175, 55, 0.3);
+    }
+
+    .metal-shake-icon {
+      opacity: 0.7;
+      animation: shakeCueAnim 1.2s ease-in-out infinite;
+      transition: opacity 0.5s ease;
+    }
+
+    .metal-shake-icon svg {
+      width: 70px;
+      height: 70px;
+    }
+
+    .metal-spark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 2px;
+      height: 15px;
+      background: #fff;
+      border-radius: 2px;
+      pointer-events: none;
+      box-shadow: 0 0 6px #d4af37, 0 0 12px #d4af37;
+      animation: metalSparkAnim 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+      z-index: 5;
+    }
+
+    @keyframes metalSparkAnim {
+      0% {
+        transform: translate(calc(-50% + var(--sx)), calc(-50% + var(--sy))) rotate(var(--rot)) scaleY(1);
+        opacity: 1;
+      }
+
+      100% {
+        transform: translate(calc(-50% + var(--ex)), calc(-50% + var(--ey))) rotate(var(--rot)) scaleY(0.2);
+        opacity: 0;
+      }
+    }
+
+    @keyframes shakeCueAnim {
+
+      0%,
+      100% {
+        transform: translateX(0) rotate(0deg);
+      }
+
+      12% {
+        transform: translateX(-10px) rotate(-12deg);
+      }
+
+      24% {
+        transform: translateX(10px) rotate(12deg);
+      }
+
+      36% {
+        transform: translateX(-8px) rotate(-8deg);
+      }
+
+      48% {
+        transform: translateX(8px) rotate(8deg);
+      }
+
+      60% {
+        transform: translateX(-4px) rotate(-3deg);
+      }
+
+      72% {
+        transform: translateX(4px) rotate(3deg);
+      }
+    }
+
+    /* ═══════════════════════════════════
+     WOOD
+     ═══════════════════════════════════ */
+    #wood-page {
+      background: radial-gradient(ellipse at 50% 40%, #0f1a0f 0%, #080d08 100%);
+    }
+
+    #wood-page .bg-char {
+      color: var(--wood);
+    }
+
+    .xy-pad {
+      position: relative;
+      width: min(75vw, 260px);
+      aspect-ratio: 1;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    .xy-pad .crosshair {
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      border: 2px solid rgba(255, 255, 255, 0.6);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      left: 50%;
+      top: 50%;
+      z-index: 2;
+    }
+
+    .xy-pad .ghost-cursor {
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      border: 1.5px solid rgba(255, 255, 255, 0.25);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 1;
+      transition: opacity 0.5s ease;
+    }
+
+    /* Tree of life */
+    .tree-container {
+      position: relative;
+      width: 100%;
+      flex: 1;
+      max-width: 340px;
+      max-height: 520px;
+    }
+
+    .tree-branches {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .tree-leaf-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+      overflow: hidden;
+    }
+
+    .tree-node {
+      position: absolute;
+      width: clamp(42px, 12vw, 52px);
+      height: clamp(42px, 12vw, 52px);
+      border: 1px solid rgba(76, 153, 76, 0.25);
+      border-radius: 4px;
+      background: rgba(76, 153, 76, 0.06);
+      color: rgba(255, 255, 255, 0.6);
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(0.6rem, 2.5vw, 0.72rem);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      transition: all 1.5s cubic-bezier(0.1, 0.9, 0.2, 1);
+    }
+
+    .tree-node.actively-playing {
+      border-color: rgba(76, 153, 76, 0.9);
+      background: rgba(76, 153, 76, 0.2);
+      box-shadow: 0 0 12px rgba(76, 153, 76, 0.8), inset 0 0 4px rgba(76, 153, 76, 0.4);
+      color: rgba(255, 255, 255, 0.9);
+      transform: translate(-50%, -50%) scale(0.95);
+      transition: all 0.05s ease-out;
+      /* snap fast */
+    }
+
+    .tree-node:active {
+      background: rgba(76, 153, 76, 0.3);
+      border-color: rgba(76, 153, 76, 0.7);
+      transform: translate(-50%, -50%) scale(0.92);
+    }
+
+    .tree-node.invite-glow {
+      border-color: rgba(76, 153, 76, 0.4);
+      box-shadow: 0 0 12px rgba(76, 153, 76, 0.15);
+      color: rgba(255, 255, 255, 0.7);
+      transition: all 0.6s ease;
+    }
+
+    .tree-root {
+      position: absolute;
+      bottom: 4%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: clamp(72px, 20vw, 88px);
+      height: clamp(72px, 20vw, 88px);
+      border: 2px solid rgba(76, 153, 76, 0.25);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .tree-root.active {
+      border-color: rgba(76, 153, 76, 0.6);
+      box-shadow: 0 0 40px rgba(76, 153, 76, 0.2);
+      background: rgba(76, 153, 76, 0.08);
+    }
+
+    .tree-root-cue {
+      opacity: 0.35;
+      animation: thumbPulse 2.5s ease-in-out infinite;
+      transition: opacity 0.4s ease;
+    }
+
+    .tree-root-cue svg {
+      width: clamp(40px, 12vw, 52px);
+      height: clamp(50px, 15vw, 65px);
+    }
+
+    .tree-leaf {
+      position: absolute;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .tree-leaf svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* ═══════════════════════════════════
+     WATER
+     ═══════════════════════════════════ */
+    #water-page {
+      background: radial-gradient(ellipse at 50% 40%, #0a1220 0%, #060a10 100%);
+    }
+
+    #water-page .bg-char {
+      color: var(--water);
+    }
+
+    .water-tilt-hint {
+      margin-bottom: clamp(8px, 1.5vh, 16px);
+      opacity: 0.6;
+      animation: tiltCueAnim 3s ease-in-out infinite;
+    }
+
+    .water-tilt-hint svg {
+      width: 56px;
+      height: 56px;
+    }
+
+    @keyframes tiltCueAnim {
+
+      0%,
+      100% {
+        transform: rotate(0deg);
+      }
+
+      20% {
+        transform: rotate(18deg);
+      }
+
+      40% {
+        transform: rotate(-3deg);
+      }
+
+      60% {
+        transform: rotate(-18deg);
+      }
+
+      80% {
+        transform: rotate(3deg);
+      }
+    }
+
+    .water-stroke-area {
+      width: min(75vw, 280px);
+      height: min(75vw, 280px);
+      position: relative;
+      touch-action: none;
+    }
+
+    .water-char-svg {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+
+    .water-stroke {
+      transition: stroke 0.3s ease;
+    }
+
+    .water-bubble {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 5;
+      transition: left 0.15s ease-out, top 0.15s ease-out;
+    }
+
+    .water-bubble-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%,
+          rgba(130, 185, 240, 0.55) 0%, rgba(70, 130, 200, 0.35) 40%,
+          rgba(50, 100, 180, 0.15) 70%, rgba(40, 80, 160, 0.05) 100%);
+      box-shadow: 0 0 12px rgba(70, 130, 200, 0.3), inset 0 0 6px rgba(130, 185, 240, 0.2);
+      position: relative;
+      animation: waterWobble 4s ease-in-out infinite alternate;
+    }
+
+    @keyframes waterWobble {
+      0% {
+        border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+      }
+
+      33% {
+        border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+      }
+
+      66% {
+        border-radius: 50% 60% 60% 40% / 40% 60% 50% 60%;
+      }
+
+      100% {
+        border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+      }
+    }
+
+    .water-bubble-inner::before {
+      content: '';
+      position: absolute;
+      top: 20%;
+      left: 25%;
+      width: 35%;
+      height: 25%;
+      border-radius: 50%;
+      background: rgba(200, 225, 255, 0.3);
+      filter: blur(2px);
+    }
+
+    .water-tilt-readout {
+      position: absolute;
+      bottom: calc(80px + var(--safe-bottom));
+      left: 0;
+      right: 0;
+      z-index: 20;
+      display: flex;
+      justify-content: center;
+      gap: clamp(16px, 5vw, 30px);
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+    }
+
+    .tilt-axis {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .tilt-axis .tilt-label {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(0.6rem, 2.5vw, 0.75rem);
+      font-weight: 300;
+      font-style: italic;
+      opacity: 0.4;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .tilt-axis .tilt-value {
+      font-family: 'Noto Serif SC', serif;
+      font-size: clamp(1.8rem, 8vw, 2.8rem);
+      font-weight: 300;
+      color: rgba(255, 255, 255, 0.7);
+      line-height: 1;
+    }
+
+    /* ═══════════════════════════════════
+     FIRE
+     ═══════════════════════════════════ */
+    #fire-page {
+      background: radial-gradient(ellipse at 50% 60%, #1a0a08 0%, #0d0604 100%);
+    }
+
+    #fire-page .bg-char {
+      color: var(--fire);
+    }
+
+    .fire-layout {
+      justify-content: flex-start;
+      padding-top: clamp(20px, 5vh, 40px);
+    }
+
+    .fire-stroke-area {
+      width: min(88vw, 340px);
+      height: min(88vw, 340px);
+      position: relative;
+      touch-action: none;
+      margin-top: clamp(8px, 1.5vh, 16px);
+    }
+
+    .fire-char-svg {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+
+    .fire-stroke {
+      transition: stroke 0.2s ease, stroke-width 0.2s ease;
+    }
+
+    .fire-flame-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 2;
+      filter: url('#goo');
+    }
+
+    .fire-trace-ghost {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: rgba(220, 60, 40, 0.35);
+      pointer-events: none;
+      z-index: 3;
+      transform: translate(-50%, -50%);
+      transition: opacity 0.5s ease;
+      box-shadow: 0 0 8px rgba(220, 60, 40, 0.3);
+    }
+
+    .flame-particle {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      animation: flameRise 0.8s ease-out forwards;
+    }
+
+    @keyframes flameRise {
+      0% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+
+      100% {
+        opacity: 0;
+        transform: scale(0.2) translateY(-80px);
+      }
+    }
+
+    .fire-xy-container {
+      margin-bottom: 0;
+    }
+
+    .fire-ghost {
+      animation: fireGhostMove 3s ease-in-out infinite;
+    }
+
+    @keyframes fireGhostMove {
+      0% {
+        left: 50%;
+        top: 50%;
+      }
+
+      20% {
+        left: 30%;
+        top: 30%;
+      }
+
+      40% {
+        left: 70%;
+        top: 40%;
+      }
+
+      60% {
+        left: 60%;
+        top: 70%;
+      }
+
+      80% {
+        left: 35%;
+        top: 55%;
+      }
+
+      100% {
+        left: 50%;
+        top: 50%;
+      }
+    }
+
+
+    /* ═══════════════════════════════════
+     EARTH
+     ═══════════════════════════════════ */
+    #earth-page {
+      background: radial-gradient(ellipse at 50% 50%, #1a1008 0%, #0d0904 100%);
+    }
+
+    #earth-page::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle, transparent 40%, rgba(0, 0, 0, 0.8) 100%);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+      z-index: 100;
+    }
+
+    #earth-page.quaking::after {
+      opacity: 1;
+      transition: opacity 0.1s ease;
+    }
+
+    #earth-page .bg-char {
+      color: var(--earth);
+    }
+
+    .earth-touch-area {
+      width: clamp(160px, 42vw, 210px);
+      height: clamp(160px, 42vw, 210px);
+      border: 2.5px solid rgba(139, 94, 60, 0.35);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .earth-thumbprint {
+      opacity: 0.55;
+      transition: opacity 0.4s ease;
+      animation: thumbPulse 2.5s ease-in-out infinite;
+    }
+
+    .earth-thumbprint svg {
+      width: clamp(56px, 16vw, 72px);
+      height: clamp(70px, 20vw, 90px);
+    }
+
+    @keyframes thumbPulse {
+
+      0%,
+      100% {
+        transform: scale(1);
+        opacity: 0.55;
+      }
+
+      50% {
+        transform: scale(1.06);
+        opacity: 0.8;
+      }
+    }
+
+    .earth-pulse {
+      position: absolute;
+      border: 1px solid rgba(139, 94, 60, 0.3);
+      border-radius: 50%;
+      animation: earthPulse 1s ease-out forwards;
+      pointer-events: none;
+    }
+
+    @keyframes earthPulse {
+      0% {
+        transform: scale(1);
+        opacity: 0.5;
+      }
+
+      100% {
+        transform: scale(2);
+        opacity: 0;
+      }
+    }
+
+    @keyframes screenShake {
+
+      0%,
+      100% {
+        transform: translate(0, 0);
+      }
+
+      10% {
+        transform: translate(-5px, -3px);
+      }
+
+      20% {
+        transform: translate(5px, 3px);
+      }
+
+      30% {
+        transform: translate(-4px, 4px);
+      }
+
+      40% {
+        transform: translate(4px, -4px);
+      }
+
+      50% {
+        transform: translate(-3px, 2px);
+      }
+
+      60% {
+        transform: translate(3px, -2px);
+      }
+
+      70% {
+        transform: translate(-2px, 3px);
+      }
+
+      80% {
+        transform: translate(2px, -1px);
+      }
+
+      90% {
+        transform: translate(-1px, 1px);
+      }
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    /* Status screens */
+    .status-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #0a0a0a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      text-align: center;
+      padding: 40px;
+      animation: fadeIn 1s ease;
+    }
+
+    .status-screen.hidden {
+      display: none;
+    }
+
+    .status-screen h1 {
+      font-family: 'Noto Serif SC', serif;
+      font-weight: 300;
+      font-size: clamp(2rem, 8vw, 3rem);
+      margin-bottom: 16px;
+      opacity: 0.9;
+    }
+
+    .status-screen .sub {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 300;
+      font-style: italic;
+      font-size: clamp(0.85rem, 3.5vw, 1.1rem);
+      opacity: 0.5;
+      line-height: 1.8;
+    }
+
+    .status-screen .reminder {
+      margin-top: 40px;
+      font-weight: 300;
+      font-style: italic;
+      font-size: clamp(0.75rem, 3vw, 0.95rem);
+      opacity: 0.4;
+      line-height: 1.7;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- SVG Filters -->
+  <svg width="0" height="0" style="position:absolute; pointer-events:none;">
+    <filter id="goo">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
+      <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="goo" />
+    </filter>
+  </svg>
+
+  <!-- Locked screen -->
+  <div class="status-screen" id="lockedScreen">
+    <h1>五行</h1>
+    <p class="sub">Performance has not yet begun.</p>
+  </div>
+
+  <!-- End screen -->
+  <div class="status-screen hidden" id="endScreen">
+    <h1>五行</h1>
+    <div class="reminder">
+      please return your phone to silent mode<br>
+      thank you
+    </div>
+  </div>
+
+  <!-- Permission -->
+  <div class="permission-overlay hidden" id="permissionOverlay">
+    <h2>五行</h2>
+    <p>This experience uses your device's<br>motion sensors, audio, and haptics.</p>
+    <div class="setup-hint">unmute · volume up · brightness up</div>
+    <button class="permission-btn" id="startBtn">Enter</button>
+    <div class="permission-status" id="permStatus"></div>
+  </div>
+
+  <!-- Landing -->
+  <div id="landing">
+    <div class="circle-layout" id="circleLayout">
+      <div class="circle-ring"></div>
+      <canvas class="energy-canvas" id="energyCanvas"></canvas>
+      <div class="circle-el c-metal" id="el-metal" onclick="openElement('metal')"><span class="char">金</span><span
+          class="elname">Metal</span></div>
+      <div class="circle-el c-wood" id="el-wood" onclick="openElement('wood')"><span class="char">木</span><span
+          class="elname">Wood</span></div>
+      <div class="circle-el c-water" id="el-water" onclick="openElement('water')"><span class="char">水</span><span
+          class="elname">Water</span></div>
+      <div class="circle-el c-fire" id="el-fire" onclick="openElement('fire')"><span class="char">火</span><span
+          class="elname">Fire</span></div>
+      <div class="circle-el c-earth" id="el-earth" onclick="openElement('earth')"><span class="char">土</span><span
+          class="elname">Earth</span></div>
+      <div class="circle-center" id="circleCenter" onclick="cycleLandingState()">
+        <h1 id="centerTitle">五行</h1>
+        <div class="subtitle" id="centerSub">Five Elements</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metal -->
+  <div class="element-page" id="metal-page">
+    <button class="home-btn" onclick="goHome()">⌂</button>
+    <div class="bg-char">金</div>
+    <div class="interaction-area">
+      <div class="metal-ring-visual" id="metalRing">
+        <div class="metal-shake-icon cue-visible" id="metalCue">
+          <svg viewBox="0 0 40 40" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round">
+            <rect x="13" y="7" width="14" height="26" rx="3" />
+            <line x1="5" y1="13" x2="9" y2="10" />
+            <line x1="4" y1="20" x2="9" y2="20" />
+            <line x1="5" y1="27" x2="9" y2="30" />
+            <line x1="35" y1="13" x2="31" y2="10" />
+            <line x1="36" y1="20" x2="31" y2="20" />
+            <line x1="35" y1="27" x2="31" y2="30" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wood -->
+  <div class="element-page" id="wood-page">
+    <button class="home-btn" onclick="goHome()">⌂</button>
+    <div class="bg-char">木</div>
+    <div class="interaction-area">
+      <div class="tree-container" id="treeContainer">
+        <!-- Branches SVG drawn by JS -->
+        <svg class="tree-branches" id="treeBranches" viewBox="0 0 300 500" preserveAspectRatio="xMidYMid meet"></svg>
+        <!-- Leaf container -->
+        <div class="tree-leaf-layer" id="treeLeafLayer"></div>
+        <!-- Marimba nodes -->
+        <button class="tree-node" id="tn0" style="left:22%;top:62%;" data-note="0">C</button>
+        <button class="tree-node" id="tn1" style="left:72%;top:57%;" data-note="1">D♭</button>
+        <button class="tree-node" id="tn2" style="left:12%;top:38%;" data-note="2">F</button>
+        <button class="tree-node" id="tn3" style="left:82%;top:34%;" data-note="3">G</button>
+        <button class="tree-node" id="tn4" style="left:32%;top:14%;" data-note="4">A♭</button>
+        <button class="tree-node" id="tn5" style="left:68%;top:18%;" data-note="5">WB</button>
+        <!-- Root -->
+        <div class="tree-root" id="woodRoot">
+          <div class="tree-root-cue cue-visible" id="woodCue">
+            <svg viewBox="0 0 64 80" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1.1"
+              stroke-linecap="round">
+              <path d="M18 70 C12 62 10 52 10 42 C10 22 18 10 32 8 C46 10 54 22 54 42 C54 52 52 62 46 70"
+                stroke="rgba(255,255,255,0.25)" stroke-width="1.5" />
+              <path d="M20 60 C24 54 28 52 32 52 C36 52 40 54 44 60" />
+              <path d="M18 56 C23 48 27 46 32 46 C37 46 41 48 46 56" />
+              <path d="M17 51 C22 43 27 40 32 40 C37 40 42 43 47 51" />
+              <path d="M17 46 C22 38 27 35 32 35 C37 35 42 38 47 46" />
+              <path d="M24 40 C24 34 27 30 32 30 C37 30 40 34 40 40 C40 44 37 47 32 47 C27 47 24 44 24 40" />
+              <path d="M27 39 C27 36 29 33 32 33 C35 33 37 36 37 39 C37 42 35 44 32 44 C29 44 27 42 27 39" />
+              <path d="M18 40 C20 30 25 24 32 24 C39 24 44 30 46 40" />
+              <path d="M16 36 C19 24 25 18 32 18 C39 18 45 24 48 36" />
+              <path d="M15 32 C18 20 24 14 32 14 C40 14 46 20 49 32" />
+              <path d="M16 28 C19 18 24 12 32 12 C40 12 45 18 48 28" />
+              <path d="M32 68 L32 76" stroke="rgba(255,255,255,0.3)" stroke-width="1.3" />
+              <path d="M28 73 L32 77 L36 73" stroke="rgba(255,255,255,0.3)" stroke-width="1.3" fill="none" />
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Water -->
+  <div class="element-page" id="water-page">
+    <button class="home-btn" onclick="goHome()">⌂</button>
+    <div class="bg-char">水</div>
+    <div class="interaction-area">
+      <div class="water-tilt-hint" id="waterTiltHint">
+        <svg viewBox="0 0 48 48" fill="none" stroke-linecap="round">
+          <rect x="16" y="10" width="16" height="26" rx="3" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" />
+          <path d="M8 23 L3 23" stroke="rgba(255,255,255,0.45)" stroke-width="1.2" />
+          <path d="M6 19.5 L3 23 L6 26.5" stroke="rgba(255,255,255,0.45)" stroke-width="1.2" fill="none" />
+          <path d="M40 23 L45 23" stroke="rgba(255,255,255,0.45)" stroke-width="1.2" />
+          <path d="M42 19.5 L45 23 L42 26.5" stroke="rgba(255,255,255,0.45)" stroke-width="1.2" fill="none" />
+          <path d="M24 5 L24 1" stroke="rgba(255,255,255,0.45)" stroke-width="1.2" />
+          <path d="M20.5 3.5 L24 0.5 L27.5 3.5" stroke="rgba(255,255,255,0.45)" stroke-width="1.2" fill="none" />
+          <path d="M24 43 L24 47" stroke="rgba(255,255,255,0.45)" stroke-width="1.2" />
+          <path d="M20.5 44.5 L24 47.5 L27.5 44.5" stroke="rgba(255,255,255,0.45)" stroke-width="1.2" fill="none" />
+        </svg>
+      </div>
+      <div class="water-stroke-area" id="waterStrokeArea">
+        <svg class="water-char-svg" id="waterCharSvg" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet">
+          <path class="water-stroke" id="ws0" d="M100 15 Q100 130 95 185" stroke="rgba(70,130,200,0.25)"
+            stroke-width="14" fill="none" stroke-linecap="round" />
+          <path class="water-stroke" id="ws1" d="M30 60 Q60 50 75 75" stroke="rgba(70,130,200,0.25)" stroke-width="12"
+            fill="none" stroke-linecap="round" />
+          <path class="water-stroke" id="ws2" d="M60 110 Q40 145 20 180" stroke="rgba(70,130,200,0.25)"
+            stroke-width="13" fill="none" stroke-linecap="round" />
+          <path class="water-stroke" id="ws3" d="M140 60 Q135 75 125 90" stroke="rgba(70,130,200,0.25)"
+            stroke-width="13" fill="none" stroke-linecap="round" />
+          <path class="water-stroke" id="ws4" d="M125 110 Q145 145 170 180" stroke="rgba(70,130,200,0.25)"
+            stroke-width="13" fill="none" stroke-linecap="round" />
+        </svg>
+        <div class="water-bubble" id="waterBubble">
+          <div class="water-bubble-inner"></div>
+        </div>
+      </div>
+      <div class="water-tilt-readout" id="waterReadout" style="opacity:0;">
+        <div class="tilt-axis"><span class="tilt-label">Tilt</span><span class="tilt-value" id="tiltBeta">0°</span>
+        </div>
+        <div class="tilt-axis"><span class="tilt-label">Roll</span><span class="tilt-value" id="tiltGamma">0°</span>
+        </div>
+        <div class="tilt-axis"><span class="tilt-label">Spin</span><span class="tilt-value" id="tiltAlpha">0°</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fire -->
+  <div class="element-page" id="fire-page">
+    <button class="home-btn" onclick="goHome()">⌂</button>
+    <div class="bg-char">火</div>
+    <div class="interaction-area fire-layout">
+      <div class="fire-xy-container">
+        <div class="xy-pad" id="firePad" style="border-color:rgba(220,60,40,0.25);max-width:180px;max-height:180px;">
+          <div class="crosshair" id="fireCrosshair"></div>
+          <div class="ghost-cursor fire-ghost" id="fireGhost"></div>
+        </div>
+      </div>
+      <div class="fire-stroke-area" id="fireStrokeArea">
+        <svg class="fire-char-svg" id="fireCharSvg" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet">
+          <!-- 火 strokes as dashed outlines for tracing -->
+          <path class="fire-stroke" id="fs0" d="M70 80 Q60 95 55 105" stroke="rgba(220,60,40,0.28)" stroke-width="9"
+            fill="none" stroke-linecap="round" stroke-dasharray="4 6" />
+          <path class="fire-stroke" id="fs1" d="M140 70 Q130 85 120 95" stroke="rgba(220,60,40,0.28)" stroke-width="9"
+            fill="none" stroke-linecap="round" stroke-dasharray="4 6" />
+          <path class="fire-stroke" id="fs2" d="M100 35 Q100 100 40 170" stroke="rgba(220,60,40,0.28)" stroke-width="10"
+            fill="none" stroke-linecap="round" stroke-dasharray="4 6" />
+          <path class="fire-stroke" id="fs3" d="M100 90 Q140 135 165 170" stroke="rgba(220,60,40,0.28)"
+            stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="4 6" />
+        </svg>
+        <div class="fire-flame-layer" id="fireFlameLayer"></div>
+        <div class="fire-trace-ghost" id="fireTraceGhost"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Earth -->
+  <div class="element-page" id="earth-page">
+    <button class="home-btn" onclick="goHome()">⌂</button>
+    <div class="bg-char">土</div>
+    <div class="interaction-area">
+      <div class="earth-touch-area" id="earthTouch">
+        <div class="earth-thumbprint" id="earthCue">
+          <svg viewBox="0 0 64 80" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1.1"
+            stroke-linecap="round">
+            <path d="M18 70 C12 62 10 52 10 42 C10 22 18 10 32 8 C46 10 54 22 54 42 C54 52 52 62 46 70"
+              stroke="rgba(255,255,255,0.25)" stroke-width="1.5" />
+            <path d="M20 60 C24 54 28 52 32 52 C36 52 40 54 44 60" />
+            <path d="M18 56 C23 48 27 46 32 46 C37 46 41 48 46 56" />
+            <path d="M17 51 C22 43 27 40 32 40 C37 40 42 43 47 51" />
+            <path d="M17 46 C22 38 27 35 32 35 C37 35 42 38 47 46" />
+            <path d="M24 40 C24 34 27 30 32 30 C37 30 40 34 40 40 C40 44 37 47 32 47 C27 47 24 44 24 40" />
+            <path d="M27 39 C27 36 29 33 32 33 C35 33 37 36 37 39 C37 42 35 44 32 44 C29 44 27 42 27 39" />
+            <path d="M18 40 C20 30 25 24 32 24 C39 24 44 30 46 40" />
+            <path d="M16 36 C19 24 25 18 32 18 C39 18 45 24 48 36" />
+            <path d="M15 32 C18 20 24 14 32 14 C40 14 46 20 49 32" />
+            <path d="M16 28 C19 18 24 12 32 12 C40 12 45 18 48 28" />
+            <path d="M32 68 L32 76" stroke="rgba(255,255,255,0.3)" stroke-width="1.3" />
+            <path d="M28 73 L32 77 L36 73" stroke="rgba(255,255,255,0.3)" stroke-width="1.3" fill="none" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <div class="bottom-nav" id="bottomNav" style="display:none;">
+    <button class="nav-item metal" onclick="switchElement('metal')"><span>金</span><span
+        class="nav-label">Metal</span></button>
+    <button class="nav-item wood" onclick="switchElement('wood')"><span>木</span><span
+        class="nav-label">Wood</span></button>
+    <button class="nav-item water" onclick="switchElement('water')"><span>水</span><span
+        class="nav-label">Water</span></button>
+    <button class="nav-item fire" onclick="switchElement('fire')"><span>火</span><span
+        class="nav-label">Fire</span></button>
+    <button class="nav-item earth" onclick="switchElement('earth')"><span>土</span><span
+        class="nav-label">Earth</span></button>
+  </div>
+
+  <script>
+    // ═══════════════════════════════════
+    // FIREBASE STATUS CONTROL
+    // ═══════════════════════════════════
+    // *** REPLACE with your Firebase config ***
+    const FIREBASE_CONFIG = {
+      databaseURL: 'https://wuxing-fa488-default-rtdb.firebaseio.com'
+    };
+    firebase.initializeApp(FIREBASE_CONFIG);
+    const db = firebase.database();
+    let appStatus = 'locked'; // locked | live | ended
+
+    function onStatusChange(status) {
+      if (status === appStatus) return;
+
+      // If we are coming back from 'ended', force a clean reset
+      if (appStatus === 'ended' && (status === 'live' || status === 'locked')) {
+        window.location.reload();
+        return;
+      }
+
+      appStatus = status;
+
+      if (status === 'locked') {
+        document.getElementById('lockedScreen').classList.remove('hidden');
+        document.getElementById('endScreen').classList.add('hidden');
+        document.getElementById('permissionOverlay').classList.add('hidden');
+      } else if (status === 'live') {
+        // Hide any status overlays first
+        document.getElementById('lockedScreen').classList.add('hidden');
+        document.getElementById('endScreen').classList.add('hidden');
+
+        if (!audioCtx) {
+          // First‑time entry: show the permission overlay so the user can start
+          document.getElementById('permissionOverlay').classList.remove('hidden');
+        } else {
+          // Returning to LIVE after having already started once (e.g. after ENDED)
+          // Resume the normal UI without needing a page refresh.
+          document.getElementById('permissionOverlay').classList.add('hidden');
+          document.getElementById('landing').style.display = 'flex';
+          document.getElementById('bottomNav').style.display = 'none';
+          currentElement = null;
+          document.querySelectorAll('.element-page').forEach(p => p.classList.remove('active'));
+          initLanding();
+          if (landingState !== 'wuxing') {
+            setTimeout(() => startEnergyFlow(landingState === 'sheng' ? 1 : -1), 100);
+          }
+        }
+      } else if (status === 'ended') {
+        triggerSoftEnd();
+      }
+    }
+
+    // Real-time listener
+    db.ref('status').on('value', snap => {
+      const val = snap.val();
+      if (val) onStatusChange(val);
+    });
+
+    // Fallback check every 30s
+    setInterval(() => {
+      db.ref('status').once('value', snap => { if (snap.val()) onStatusChange(snap.val()); });
+    }, 30000);
+
+    function triggerSoftEnd() {
+      // Random fade 3-6 seconds per device
+      const fadeDur = 3 + Math.random() * 3;
+      const t = audioCtx ? audioCtx.currentTime : 0;
+
+      // Fade all active audio
+      if (audioCtx && currentElement) {
+        const fadeNodes = [];
+        if (woodLoop) fadeNodes.push(woodLoop.gain);
+        if (woodSynth) fadeNodes.push(woodSynth.gain);
+        if (waterLoop) fadeNodes.push(waterLoop.gain);
+        if (waterSynth) fadeNodes.push(waterSynth.gain);
+        if (fireLoop) fadeNodes.push(fireLoop.gain);
+        if (fireSynth) fadeNodes.push(fireSynth.gain);
+        if (earthDrone) fadeNodes.push(earthDrone.gain);
+        if (earthBed) fadeNodes.push(earthBed.gain);
+        fadeNodes.forEach(g => {
+          g.gain.setValueAtTime(g.gain.value, t);
+          g.gain.linearRampToValueAtTime(0, t + fadeDur);
+        });
+      }
+
+      // Show end screen after fade completes
+      setTimeout(() => {
+        if (currentElement) cleanupCurrent();
+        document.querySelectorAll('.element-page').forEach(p => p.classList.remove('active'));
+        document.getElementById('landing').style.display = 'none';
+        document.getElementById('bottomNav').style.display = 'none';
+        document.getElementById('permissionOverlay').classList.add('hidden');
+        document.getElementById('lockedScreen').classList.add('hidden');
+        document.getElementById('endScreen').classList.remove('hidden');
+        currentElement = null;
+      }, fadeDur * 1000 + 200);
+    }
+
+    // ═══════════════════════════════════
+    // WAKE FROM SLEEP
+    // ═══════════════════════════════════
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        // Resume audio context
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        // Re-check Firebase status
+        db.ref('status').once('value', snap => { if (snap.val()) onStatusChange(snap.val()); });
+        // Re-initialize current element if still live
+        if (appStatus === 'live' && currentElement) {
+          const el = currentElement;
+          cleanupCurrent();
+          currentElement = null;
+          switchElement(el);
+        }
+      }
+    });
+
+    // ═══════════════════════════════════
+    // AUDIO LOADING
+    // ═══════════════════════════════════
+    let audioCtx = null, currentElement = null;
+    const audioBuffers = {};
+    const AUDIO_FILES = {
+      'water_long': 'audio/Water_Long.mp3',
+      'wood_long': 'audio/Wood_Long.mp3',
+      'fire_long': 'audio/Fire_Long.mp3',
+      'earth_long': 'audio/Earth_Long.mp3',
+      'C2': 'audio/C2_Marimba_Hard.mp3', 'C3': 'audio/C3_Marimba_Hard.mp3',
+      'C4': 'audio/C4_Marimba_Hard.mp3', 'C5': 'audio/C5_Marimba_Hard.mp3', 'C6': 'audio/C6_Marimba_Hard.mp3',
+      'Db2': 'audio/Db2_Marimba_Hard.mp3', 'Db3': 'audio/Db3_Marimba_Hard.mp3',
+      'Db4': 'audio/Db4_Marimba_Hard.mp3', 'Db5': 'audio/Db5_Marimba_Hard.mp3',
+      'F2': 'audio/F2_Marimba_Hard.mp3', 'F3': 'audio/F3_Marimba_Hard.mp3',
+      'F4': 'audio/F4_Marimba_Hard.mp3', 'F5': 'audio/F5_Marimba_Hard.mp3',
+      'G2': 'audio/G2_Marimba_Hard.mp3', 'G3': 'audio/G3_Marimba_Hard.mp3',
+      'G4': 'audio/G4_Marimba_Hard.mp3', 'G5': 'audio/G5_Marimba_Hard.mp3',
+      'Ab2': 'audio/Ab2_Marimba_Hard.mp3', 'Ab3': 'audio/Ab3_Marimba_Hard.mp3',
+      'Ab4': 'audio/Ab4_Marimba_Hard.mp3', 'Ab5': 'audio/Ab5_Marimba_Hard.mp3',
+      'Wb1': 'audio/Wb1.mp3', 'Wb2': 'audio/Wb2.mp3', 'Wb3': 'audio/Wb3.mp3', 'Wb4': 'audio/Wb4.mp3'
+    };
+
+    async function loadAllAudio() {
+      if (!audioCtx) return;
+      const promises = Object.entries(AUDIO_FILES).map(async ([k, url]) => {
+        try {
+          const r = await fetch(url);
+          const ab = await r.arrayBuffer();
+          audioBuffers[k] = await audioCtx.decodeAudioData(ab);
+        } catch (e) { console.warn('Failed to load ' + url, e); }
+      });
+      await Promise.all(promises);
+    }
+
+    function initAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playBuffer(key, loop, gain) {
+      const buf = audioBuffers[key]; if (!buf) return null;
+      const src = audioCtx.createBufferSource();
+      const g = audioCtx.createGain();
+      src.buffer = buf; src.loop = !!loop;
+      g.gain.value = gain || 1;
+      src.connect(g); g.connect(audioCtx.destination);
+      src.start();
+      return { source: src, gain: g };
+    }
+
+    function playBufferWithChain(key, loop) {
+      const buf = audioBuffers[key]; if (!buf) return null;
+      const src = audioCtx.createBufferSource();
+      const g = audioCtx.createGain();
+      const fl = audioCtx.createBiquadFilter();
+      fl.type = 'lowpass'; fl.frequency.value = 800; fl.Q.value = 2;
+      g.gain.value = 0;
+      src.buffer = buf; src.loop = !!loop;
+      src.connect(fl); fl.connect(g); g.connect(audioCtx.destination);
+      src.start();
+      return { source: src, gain: g, filter: fl };
+    }
+
+    document.getElementById('startBtn').addEventListener('click', async () => {
+      const s = document.getElementById('permStatus'); s.textContent = 'Loading…';
+      initAudio();
+      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') { try { await DeviceMotionEvent.requestPermission(); } catch (e) { } }
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') { try { await DeviceOrientationEvent.requestPermission(); } catch (e) { } }
+      if (navigator.vibrate) navigator.vibrate(1);
+      if ('wakeLock' in navigator) { try { await navigator.wakeLock.request('screen'); } catch (e) { } }
+      await loadAllAudio();
+      document.getElementById('permissionOverlay').classList.add('hidden');
+      document.getElementById('landing').style.display = 'flex';
+      initLanding();
+    });
+
+    function hideCue(id) { const c = document.getElementById(id); if (c) { c.classList.remove('cue-visible'); c.classList.add('cue-hidden'); } }
+    function showCue(id) { const c = document.getElementById(id); if (c) { c.classList.remove('cue-hidden'); c.classList.add('cue-visible'); } }
+
+    // ═══════════════════════════════════
+    // LANDING
+    // ═══════════════════════════════════
+    const PPOS = [{ top: 7.5, left: 50 }, { top: 34.5, left: 90 }, { top: 84, left: 74 }, { top: 84, left: 26 }, { top: 34.5, left: 10 }];
+    const EL_IDS = ['el-metal', 'el-wood', 'el-water', 'el-fire', 'el-earth'];
+    const STATE_MAP = {
+      wuxing: [0, 1, 2, 3, 4],
+      sheng: [0, 2, 1, 3, 4],
+      ke: [0, 4, 2, 1, 3]
+    };
+    const STATE_LABELS = {
+      wuxing: { title: '五行', sub: 'Five Elements' },
+      sheng: { title: '生', sub: 'Creation' },
+      ke: { title: '克', sub: 'Destruction' }
+    };
+    const STATE_ORDER = ['wuxing', 'sheng', 'ke'];
+    let landingState = 'wuxing', energyAnimFrame = null, energyParticles = [], energyDirection = 0;
+
+    function initLanding() {
+      const layout = document.getElementById('circleLayout');
+      const canvas = document.getElementById('energyCanvas');
+      const sz = layout.clientWidth;
+      canvas.width = sz * 2; canvas.height = sz * 2;
+      canvas.style.width = sz + 'px'; canvas.style.height = sz + 'px';
+      setElementPositions('wuxing');
+    }
+    function setElementPositions(state) {
+      const map = STATE_MAP[state];
+      for (let i = 0; i < 5; i++) {
+        const el = document.getElementById(EL_IDS[i]);
+        const p = PPOS[map[i]];
+        el.style.top = p.top + '%'; el.style.left = p.left + '%';
+      }
+    }
+    function cycleLandingState() {
+      stopEnergyFlow();
+      const next = STATE_ORDER[(STATE_ORDER.indexOf(landingState) + 1) % 3];
+      landingState = next;
+      document.getElementById('centerTitle').textContent = STATE_LABELS[next].title;
+      document.getElementById('centerSub').textContent = STATE_LABELS[next].sub;
+      setElementPositions(next);
+      if (next !== 'wuxing') setTimeout(() => startEnergyFlow(next === 'sheng' ? 1 : -1), 750);
+    }
+    function startEnergyFlow(dir) {
+      energyDirection = dir; energyParticles = [];
+      for (let i = 0; i < 6; i++)energyParticles.push({ angle: (i / 6) * Math.PI * 2, speed: 0.012 + Math.random() * 0.004, size: 2 + Math.random() * 1.5 });
+      drawEnergy();
+    }
+    function stopEnergyFlow() {
+      if (energyAnimFrame) { cancelAnimationFrame(energyAnimFrame); energyAnimFrame = null; }
+      const canvas = document.getElementById('energyCanvas');
+      if (canvas) { canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height); }
+    }
+    function drawEnergy() {
+      const canvas = document.getElementById('energyCanvas');
+      const ctx = canvas.getContext('2d'), w = canvas.width, h = canvas.height, cx = w / 2, cy = h / 2, r = w * 0.425;
+      ctx.clearRect(0, 0, w, h);
+      for (const p of energyParticles) {
+        p.angle += p.speed * energyDirection;
+        const x = cx + r * Math.sin(p.angle), y = cy - r * Math.cos(p.angle);
+        const g = ctx.createRadialGradient(x, y, 0, x, y, 16);
+        g.addColorStop(0, 'rgba(255,255,255,0.4)'); g.addColorStop(0.4, 'rgba(255,255,255,0.1)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, 16, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.beginPath(); ctx.arc(x, y, p.size, 0, Math.PI * 2); ctx.fill();
+        for (let t = 1; t <= 3; t++) {
+          const ta = p.angle - p.speed * energyDirection * t * 3, tx = cx + r * Math.sin(ta), ty = cy - r * Math.cos(ta);
+          ctx.fillStyle = `rgba(255,255,255,${0.2 - t * 0.06})`; ctx.beginPath(); ctx.arc(tx, ty, p.size * 0.7, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      energyAnimFrame = requestAnimationFrame(drawEnergy);
+    }
+
+    // ═══════════════════════════════════
+    // NAV
+    // ═══════════════════════════════════
+    function openElement(n) { initAudio(); stopEnergyFlow(); document.getElementById('landing').style.display = 'none'; document.getElementById('bottomNav').style.display = 'flex'; switchElement(n); }
+    function switchElement(n) {
+      if (currentElement === n) return;
+      if (currentElement) cleanupCurrent();
+      document.querySelectorAll('.element-page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+      document.querySelector(`.nav-item.${n}`).classList.add('active');
+      document.getElementById(n + '-page').classList.add('active');
+      currentElement = n; initAudio();
+      ({ metal: initMetal, wood: initWood, water: initWater, fire: initFire, earth: initEarth })[n]();
+    }
+    function goHome() {
+      cleanupCurrent();
+      document.querySelectorAll('.element-page').forEach(p => p.classList.remove('active'));
+      document.getElementById('bottomNav').style.display = 'none';
+      document.getElementById('landing').style.display = 'flex';
+      currentElement = null; initLanding();
+      if (landingState !== 'wuxing') setTimeout(() => startEnergyFlow(landingState === 'sheng' ? 1 : -1), 100);
+    }
+    function cleanupCurrent() { ({ metal: cleanupMetal, wood: cleanupWood, water: cleanupWater, fire: cleanupFire, earth: cleanupEarth })[currentElement](); }
+
+    // ═══════════════════════════════════
+    // METAL — synth, 1s idle
+    // ═══════════════════════════════════
+    let metalHandler = null, metalLastShake = 0, metalIdleTimer = null;
+    function initMetal() {
+      showCue('metalCue');
+      metalHandler = e => {
+        const a = e.accelerationIncludingGravity || e.acceleration; if (!a) return;
+        const m = Math.sqrt(a.x * a.x + a.y * a.y + a.z * a.z), now = Date.now();
+        if (m > 18 && now - metalLastShake > 120) {
+          metalLastShake = now; hideCue('metalCue'); triggerMetalRing(Math.min(m / 40, 1));
+          clearTimeout(metalIdleTimer); metalIdleTimer = setTimeout(() => showCue('metalCue'), 1000);
+        }
+      };
+      window.addEventListener('devicemotion', metalHandler);
+      document.getElementById('metalRing').addEventListener('touchstart', metalTap);
+    }
+    function metalTap() { hideCue('metalCue'); triggerMetalRing(0.7); clearTimeout(metalIdleTimer); metalIdleTimer = setTimeout(() => showCue('metalCue'), 1000); }
+    function triggerMetalRing(v) {
+      const r = document.getElementById('metalRing'); r.classList.add('shaking'); setTimeout(() => r.classList.remove('shaking'), 200);
+
+      // Emit sparks
+      for (let i = 0; i < 6; i++) {
+        const spark = document.createElement('div');
+        spark.className = 'metal-spark';
+        const angle = Math.random() * Math.PI * 2;
+        const startRad = 70; // rough radius of the ring
+        const endRad = startRad + 30 + Math.random() * 40;
+        spark.style.setProperty('--sx', `${Math.cos(angle) * startRad}px`);
+        spark.style.setProperty('--sy', `${Math.sin(angle) * startRad}px`);
+        spark.style.setProperty('--ex', `${Math.cos(angle) * endRad}px`);
+        spark.style.setProperty('--ey', `${Math.sin(angle) * endRad}px`);
+        spark.style.setProperty('--rot', `${angle + Math.PI / 2}rad`);
+        r.appendChild(spark);
+        setTimeout(() => spark.remove(), 500);
+      }
+
+      const t = audioCtx.currentTime, f = 800 + Math.random() * 600;
+      const m = audioCtx.createOscillator(), mg = audioCtx.createGain(), c = audioCtx.createOscillator(), e = audioCtx.createGain();
+      m.frequency.value = f * 1.4; mg.gain.value = f * 2; c.frequency.value = f;
+      m.connect(mg); mg.connect(c.frequency); c.connect(e); e.connect(audioCtx.destination);
+      e.gain.setValueAtTime(v * 0.25, t); e.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
+      m.start(t); c.start(t); m.stop(t + 1.6); c.stop(t + 1.6);
+
+      // E4 resonance: fades in during bell decay, very soft
+      const eTone = audioCtx.createOscillator();
+      const eGain = audioCtx.createGain();
+      eTone.type = 'sine';
+      eTone.frequency.value = 329.6; // E4
+      eTone.connect(eGain);
+      eGain.connect(audioCtx.destination);
+      eGain.gain.setValueAtTime(0, t);
+      eGain.gain.setValueAtTime(0, t + 0.4); // silent during attack
+      eGain.gain.linearRampToValueAtTime(v * 0.025, t + 1.0); // bloom in decay
+      eGain.gain.linearRampToValueAtTime(0, t + 3.0); // fade out
+      eTone.start(t);
+      eTone.stop(t + 3.1);
+    }
+    function cleanupMetal() {
+      if (metalHandler) window.removeEventListener('devicemotion', metalHandler);
+      document.getElementById('metalRing').removeEventListener('touchstart', metalTap);
+      clearTimeout(metalIdleTimer); metalHandler = null;
+    }
+
+    // ═══════════════════════════════════
+    // WOOD — Tree of life
+    // ═══════════════════════════════════
+    let woodLoop = null, woodSynth = null, woodSynthLfo = null, woodSynthLfoGain = null, woodPadActive = false, woodLeafInterval = null, woodBreathPhase = 0, woodBreathFrame = null, woodHoldStart = 0, woodGlowInterval = null, woodGlowDeck = [], woodGlowStopped = false;
+    let leafTargetDeck = [], leafTargetIdx = 0;
+
+    // Round robin config
+    const WOOD_NOTES = [
+      { keys: ['C2', 'C3', 'C4', 'C5', 'C6'], def: 'C3', defCount: 2 },
+      { keys: ['Db2', 'Db3', 'Db4', 'Db5'], def: 'Db3', defCount: 2 },
+      { keys: ['F2', 'F3', 'F4', 'F5'], def: 'F3', defCount: 2 },
+      { keys: ['G2', 'G3', 'G4', 'G5'], def: 'G3', defCount: 2 },
+      { keys: ['Ab2', 'Ab3', 'Ab4', 'Ab5'], def: 'Ab3', defCount: 2 },
+      { keys: ['Wb1', 'Wb2', 'Wb3', 'Wb4'], def: 'Wb3', defCount: 1 }
+    ];
+    let woodTapCounts = [0, 0, 0, 0, 0, 0];
+
+    // Node positions (% of container) for branch drawing
+    const TREE_NODES = [
+      { x: 22, y: 62 }, { x: 72, y: 57 }, { x: 12, y: 38 }, { x: 82, y: 34 }, { x: 32, y: 14 }, { x: 68, y: 18 }
+    ];
+    const TREE_ROOT = { x: 50, y: 94 };
+    const TREE_TRUNK_TOP = { x: 50, y: 52 };
+
+    // Branch control points (stored after drawing for leaf paths)
+    let branchPaths = [];
+
+    function shuffleArray(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]]; }
+      return a;
+    }
+
+    function nextGlowIndex() {
+      if (woodGlowDeck.length === 0) woodGlowDeck = shuffleArray([0, 1, 2, 3, 4, 5]);
+      return woodGlowDeck.shift();
+    }
+
+    function nextLeafTarget() {
+      if (leafTargetIdx >= leafTargetDeck.length) { leafTargetDeck = shuffleArray([0, 1, 2, 3, 4, 5]); leafTargetIdx = 0; }
+      return leafTargetDeck[leafTargetIdx++];
+    }
+
+    function initWood() {
+      woodTapCounts = [0, 0, 0, 0, 0, 0];
+      woodGlowStopped = false;
+      leafTargetDeck = shuffleArray([0, 1, 2, 3, 4, 5]); leafTargetIdx = 0;
+      showCue('woodCue');
+      drawBranches();
+
+      // MP3 loop through filter
+      woodLoop = playBufferWithChain('wood_long', true);
+      if (woodLoop) { woodLoop.filter.frequency.value = 600; woodLoop.gain.gain.value = 0; }
+
+      // Sine synth bed with slow LFO (pulsing ember)
+      woodSynth = createDrone(65.4, 'sine', 2);
+      woodSynth.filter.frequency.value = 600; woodSynth.gain.gain.value = 0;
+      woodSynthLfo = audioCtx.createOscillator();
+      woodSynthLfoGain = audioCtx.createGain();
+      woodSynthLfo.type = 'sine'; woodSynthLfo.frequency.value = 0.15;
+      woodSynthLfoGain.gain.value = 0.03;
+      woodSynthLfo.connect(woodSynthLfoGain);
+      woodSynthLfoGain.connect(woodSynth.gain.gain);
+      woodSynthLfo.start();
+
+      const root = document.getElementById('woodRoot');
+      root.addEventListener('touchstart', woodTS);
+      root.addEventListener('touchend', woodTE);
+      root.addEventListener('touchcancel', woodTE);
+
+      // Marimba nodes
+      const nodes = document.querySelectorAll('#wood-page .tree-node');
+      nodes.forEach((n, i) => {
+        n.addEventListener('touchstart', e => {
+          e.preventDefault();
+          // Stop glow permanently on first tap
+          if (!woodGlowStopped) {
+            woodGlowStopped = true;
+            if (woodGlowInterval) { clearInterval(woodGlowInterval); woodGlowInterval = null; }
+            nodes.forEach(nn => nn.classList.remove('invite-glow'));
+          }
+          triggerWoodSample(i);
+
+          // Visual bloom effect on hit
+          n.classList.add('actively-playing');
+          // Reset after frame to let transition handle the long fade
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              n.classList.remove('actively-playing');
+            });
+          });
+        });
+      });
+
+      // Start shuffled glow cycling
+      woodGlowDeck = [];
+      let currentGlow = -1;
+      woodGlowInterval = setInterval(() => {
+        if (woodGlowStopped) return;
+        nodes.forEach(nn => nn.classList.remove('invite-glow'));
+        currentGlow = nextGlowIndex();
+        nodes[currentGlow].classList.add('invite-glow');
+      }, 600);
+    }
+
+    function drawBranches() {
+      const svg = document.getElementById('treeBranches');
+      const vw = 300, vh = 500;
+      const rx = TREE_ROOT.x / 100 * vw, ry = TREE_ROOT.y / 100 * vh;
+      const ttx = TREE_TRUNK_TOP.x / 100 * vw, tty = TREE_TRUNK_TOP.y / 100 * vh;
+      let paths = '';
+      branchPaths = [];
+
+      // Trunk
+      paths += `<path d="M${rx} ${ry} Q${rx} ${ry - 40} ${ttx} ${tty}" stroke="rgba(76,153,76,0.25)" stroke-width="1.5" fill="none"/>`;
+
+      // Branches to each node
+      TREE_NODES.forEach((n, i) => {
+        const nx = n.x / 100 * vw, ny = n.y / 100 * vh;
+        const cpx = (ttx + nx) / 2 + (((i % 3) - 1) * 15);
+        const cpy = Math.min(tty, ny) + (Math.abs(tty - ny) * 0.3);
+        paths += `<path d="M${ttx} ${tty} Q${cpx} ${cpy} ${nx} ${ny}" stroke="rgba(76,153,76,0.25)" stroke-width="1.2" fill="none"/>`;
+        // Store control points for leaf path sampling
+        branchPaths.push({ sx: ttx, sy: tty, cpx, cpy, ex: nx, ey: ny });
+      });
+      svg.innerHTML = paths;
+    }
+
+    // Quadratic bezier point at parameter t
+    function bezierPt(sx, sy, cpx, cpy, ex, ey, t) {
+      const u = 1 - t;
+      return {
+        x: u * u * sx + 2 * u * t * cpx + t * t * ex,
+        y: u * u * sy + 2 * u * t * cpy + t * t * ey
+      };
+    }
+
+    function woodTS(e) {
+      e.preventDefault();
+      woodPadActive = true; woodHoldStart = Date.now();
+      hideCue('woodCue');
+      const root = document.getElementById('woodRoot');
+      root.classList.add('active');
+
+      if (woodLoop) {
+        woodLoop.gain.gain.setValueAtTime(woodLoop.gain.gain.value, audioCtx.currentTime);
+        woodLoop.gain.gain.linearRampToValueAtTime(0.35, audioCtx.currentTime + 0.8);
+      }
+      if (woodSynth) {
+        woodSynth.gain.gain.setValueAtTime(0, audioCtx.currentTime);
+        woodSynth.gain.gain.linearRampToValueAtTime(0.06, audioCtx.currentTime + 1.5);
+      }
+      // Speed up LFO on press
+      if (woodSynthLfo) woodSynthLfo.frequency.linearRampToValueAtTime(0.35, audioCtx.currentTime + 2.0);
+
+      leafTargetDeck = shuffleArray([0, 1, 2, 3, 4, 5]); leafTargetIdx = 0;
+      woodLeafTick();
+      woodBreathPhase = 0;
+      woodBreathLoop();
+    }
+
+    function woodLeafTick() {
+      if (!woodPadActive) return;
+      const elapsed = Date.now() - woodHoldStart;
+      const progress = Math.min(elapsed / 10000, 1);
+      // Base interval 300→80ms + random jitter ±40ms
+      const baseInterval = 300 - progress * 220;
+      const jitter = (Math.random() - 0.5) * 80;
+      const interval = Math.max(60, baseInterval + jitter);
+      spawnTreeLeaf();
+      woodLeafInterval = setTimeout(woodLeafTick, interval);
+    }
+
+    function woodTE() {
+      woodPadActive = false;
+      const root = document.getElementById('woodRoot');
+      root.classList.remove('active');
+      showCue('woodCue');
+      if (woodLoop) {
+        woodLoop.gain.gain.setValueAtTime(woodLoop.gain.gain.value, audioCtx.currentTime);
+        woodLoop.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+      }
+      if (woodSynth) {
+        woodSynth.gain.gain.setValueAtTime(woodSynth.gain.gain.value, audioCtx.currentTime);
+        woodSynth.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+      }
+      // Slow LFO back down
+      if (woodSynthLfo) woodSynthLfo.frequency.linearRampToValueAtTime(0.15, audioCtx.currentTime + 1.0);
+      if (woodLeafInterval) { clearTimeout(woodLeafInterval); woodLeafInterval = null; }
+      if (woodBreathFrame) { cancelAnimationFrame(woodBreathFrame); woodBreathFrame = null; }
+    }
+
+    function woodBreathLoop() {
+      if (!woodPadActive || !woodLoop) return;
+      woodBreathPhase += 0.008;
+      const freq = 1400 + 1100 * Math.sin(woodBreathPhase);
+      woodLoop.filter.frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.1);
+      if (woodSynth) woodSynth.filter.frequency.setTargetAtTime(freq * 0.5, audioCtx.currentTime, 0.1);
+      woodBreathFrame = requestAnimationFrame(woodBreathLoop);
+    }
+
+    function spawnTreeLeaf() {
+      const layer = document.getElementById('treeLeafLayer');
+      const container = document.getElementById('treeContainer');
+      if (!container || !layer || branchPaths.length === 0) return;
+      const cw = container.clientWidth, ch = container.clientHeight;
+      const scX = cw / 300, scY = ch / 500;
+
+      // Balanced target via shuffled deck
+      const targetIdx = nextLeafTarget();
+      const branch = branchPaths[targetIdx];
+
+      // Trunk path: root to trunk top (quadratic bezier)
+      const trunkSx = TREE_ROOT.x / 100 * cw, trunkSy = TREE_ROOT.y / 100 * ch;
+      const trunkCpx = trunkSx, trunkCpy = trunkSy - 40 * scY;
+      const trunkEx = TREE_TRUNK_TOP.x / 100 * cw, trunkEy = TREE_TRUNK_TOP.y / 100 * ch;
+
+      // Branch path (scaled to container)
+      const bsx = branch.sx * scX, bsy = branch.sy * scY;
+      const bcpx = branch.cpx * scX, bcpy = branch.cpy * scY;
+      const bex = branch.ex * scX, bey = branch.ey * scY;
+
+      // Spawn from root rim
+      const angle = Math.random() * Math.PI * 2;
+      const rootR = 35;
+      const spawnX = trunkSx + Math.cos(angle) * rootR;
+      const spawnY = trunkSy + Math.sin(angle) * rootR;
+
+      // Randomized parameters
+      const dur = 2.5 + Math.random() * 1.8;
+      const rot = Math.random() * 360;
+      const rotSpeed = 100 + Math.random() * 200;
+      const swayAmp = 8 + Math.random() * 16;
+      const swayFreq = 1.5 + Math.random() * 2;
+      const fillOp = 0.4 + Math.random() * 0.4;
+
+      const leaf = document.createElement('div');
+      leaf.className = 'tree-leaf';
+      leaf.style.left = spawnX + 'px'; leaf.style.top = spawnY + 'px';
+      leaf.innerHTML = `<svg viewBox="0 0 20 20" fill="rgba(76,153,76,${fillOp})" stroke="rgba(76,153,76,0.4)" stroke-width="0.5">
+    <path d="M10 2 C6 6 3 10 4 14 C5 18 9 19 10 19 C11 19 15 18 16 14 C17 10 14 6 10 2Z"/>
+    <path d="M10 5 L10 17" fill="none" stroke="rgba(76,153,76,0.4)" stroke-width="0.6"/>
+  </svg>`;
+
+      const startTime = performance.now();
+      // Trunk takes first 40% of journey, branch takes 60%
+      const trunkFrac = 0.4;
+
+      function animLeaf(now) {
+        const t = Math.min((now - startTime) / (dur * 1000), 1);
+        let px, py;
+
+        if (t < 0.05) {
+          // Quick move from spawn to trunk start
+          const st = t / 0.05;
+          px = spawnX + (trunkSx - spawnX) * st;
+          py = spawnY + (trunkSy - spawnY) * st;
+        } else if (t < trunkFrac) {
+          // Follow trunk
+          const tt = (t - 0.05) / (trunkFrac - 0.05);
+          const ease = tt * tt * (3 - 2 * tt); // smoothstep
+          const pt = bezierPt(trunkSx, trunkSy, trunkCpx, trunkCpy, trunkEx, trunkEy, ease);
+          px = pt.x; py = pt.y;
+        } else {
+          // Follow branch
+          const bt = (t - trunkFrac) / (1 - trunkFrac);
+          const ease = bt * bt * (3 - 2 * bt);
+          const pt = bezierPt(bsx, bsy, bcpx, bcpy, bex, bey, ease);
+          px = pt.x; py = pt.y;
+        }
+
+        // Add sway perpendicular to path
+        px += swayAmp * Math.sin(t * Math.PI * swayFreq);
+
+        const r = rot + rotSpeed * t;
+        const op = t < 0.1 ? t / 0.1 : (t > 0.75 ? Math.max(0, (1 - t) / 0.25) : 1);
+        const sc = 0.5 + 0.5 * (1 - t * 0.4);
+
+        leaf.style.transform = `translate(-50%,-50%) rotate(${r}deg) scale(${sc})`;
+        leaf.style.left = px + 'px'; leaf.style.top = py + 'px';
+        leaf.style.opacity = op * 0.7;
+        if (t < 1) requestAnimationFrame(animLeaf);
+        else leaf.remove();
+      }
+      layer.appendChild(leaf);
+      requestAnimationFrame(animLeaf);
+    }
+
+    function triggerWoodSample(idx) {
+      const note = WOOD_NOTES[idx];
+      const count = woodTapCounts[idx];
+      let key;
+      if (count < note.defCount) {
+        key = note.def;
+      } else {
+        key = note.keys[Math.floor(Math.random() * note.keys.length)];
+      }
+      woodTapCounts[idx]++;
+      playBuffer(key, false, 0.5);
+    }
+
+    function cleanupWood() {
+      woodPadActive = false;
+      if (woodLoop) {
+        woodLoop.gain.gain.setValueAtTime(woodLoop.gain.gain.value, audioCtx.currentTime);
+        woodLoop.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+        setTimeout(() => { try { woodLoop.source.stop(); } catch (e) { } woodLoop = null; }, 600);
+      } else { woodLoop = null; }
+      if (woodSynth) {
+        woodSynth.gain.gain.setValueAtTime(woodSynth.gain.gain.value, audioCtx.currentTime);
+        woodSynth.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+        setTimeout(() => {
+          if (woodSynthLfo) try { woodSynthLfo.stop(); } catch (e) { }
+          try { woodSynth.osc1.stop(); woodSynth.osc2.stop(); } catch (e) { }
+          woodSynth = null; woodSynthLfo = null; woodSynthLfoGain = null;
+        }, 600);
+      } else { woodSynth = null; woodSynthLfo = null; woodSynthLfoGain = null; }
+      if (woodLeafInterval) { clearTimeout(woodLeafInterval); woodLeafInterval = null; }
+      if (woodBreathFrame) { cancelAnimationFrame(woodBreathFrame); woodBreathFrame = null; }
+      if (woodGlowInterval) { clearInterval(woodGlowInterval); woodGlowInterval = null; }
+      const nodes = document.querySelectorAll('#wood-page .tree-node');
+      nodes.forEach(n => n.classList.remove('invite-glow'));
+      const root = document.getElementById('woodRoot');
+      root.classList.remove('active');
+      root.removeEventListener('touchstart', woodTS);
+      root.removeEventListener('touchend', woodTE);
+      root.removeEventListener('touchcancel', woodTE);
+      const layer = document.getElementById('treeLeafLayer');
+      if (layer) layer.innerHTML = '';
+    }
+
+    // ═══════════════════════════════════
+    // WATER — MP3 loop, clamped tilt
+    // ═══════════════════════════════════
+    let waterLoop = null, waterSynth = null, waterLfo = null, waterLfoGain = null, waterOrientHandler = null, waterReady = false, waterDelayTimer = null, waterBaseAlpha = null, waterSmoothedAlpha = 0;
+    const BETA_NEUTRAL = 60, TILT_FWD = 55, TILT_BACK = 15, ROLL_CLAMP = 50, SPIN_CLAMP = 60, SPIN_MAX_JUMP = 30;
+
+    // 水 stroke paths in SVG space (0-200)
+    const WATER_STROKES = [
+      [{ x: 100, y: 15 }, { x: 100, y: 70 }, { x: 100, y: 130 }, { x: 95, y: 185 }], // ws0: center vertical hook
+      [{ x: 30, y: 60 }, { x: 45, y: 55 }, { x: 60, y: 50 }, { x: 75, y: 75 }], // ws1: top left hook
+      [{ x: 60, y: 110 }, { x: 50, y: 125 }, { x: 40, y: 145 }, { x: 20, y: 180 }], // ws2: bottom left sweep
+      [{ x: 140, y: 60 }, { x: 135, y: 75 }, { x: 125, y: 90 }], // ws3: right dot/short sweep
+      [{ x: 125, y: 110 }, { x: 145, y: 145 }, { x: 170, y: 180 }] // ws4: bottom right sweep
+    ];
+
+    // Find closest point on any stroke to a target XY in SVG space
+    function closestWaterPoint(tx, ty) {
+      let bestDist = Infinity, bestX = 100, bestY = 100, bestStroke = 0;
+      for (let si = 0; si < WATER_STROKES.length; si++) {
+        const stroke = WATER_STROKES[si];
+        for (let i = 0; i < stroke.length - 1; i++) {
+          const ax = stroke[i].x, ay = stroke[i].y, bx = stroke[i + 1].x, by = stroke[i + 1].y;
+          const dx = bx - ax, dy = by - ay, len2 = dx * dx + dy * dy;
+          let t = len2 > 0 ? ((tx - ax) * dx + (ty - ay) * dy) / len2 : 0;
+          t = Math.max(0, Math.min(1, t));
+          const cx = ax + t * dx, cy = ay + t * dy;
+          const dist = Math.sqrt((tx - cx) * (tx - cx) + (ty - cy) * (ty - cy));
+          if (dist < bestDist) { bestDist = dist; bestX = cx; bestY = cy; bestStroke = si; }
+        }
+      }
+      return { x: bestX, y: bestY, stroke: bestStroke };
+    }
+
+    function initWater() {
+      waterReady = false; waterBaseAlpha = null;
+      document.getElementById('waterReadout').style.opacity = '0';
+      const bubble = document.getElementById('waterBubble');
+      const sa = document.getElementById('waterStrokeArea');
+      // Start at center junction
+      bubble.style.left = '50%'; bubble.style.top = '47.5%';
+
+      // Show tilt hint, hide after first movement
+      const hint = document.getElementById('waterTiltHint');
+      if (hint) hint.style.opacity = '0.35';
+
+      waterLoop = playBufferWithChain('water_long', true);
+      if (waterLoop) {
+        waterLoop.gain.gain.value = 0;
+        waterLoop.filter.frequency.value = 800;
+        waterLfo = audioCtx.createOscillator();
+        waterLfoGain = audioCtx.createGain();
+        waterLfo.type = 'sine'; waterLfo.frequency.value = 0.3;
+        waterLfoGain.gain.value = 200;
+        waterLfo.connect(waterLfoGain);
+        waterLfoGain.connect(waterLoop.filter.frequency);
+        waterLfo.start();
+      }
+
+      waterSynth = createDrone(103.8, 'triangle', 3);
+      waterSynth.filter.frequency.value = 800; waterSynth.gain.gain.value = 0;
+
+      const readout = document.getElementById('waterReadout');
+      const vB = document.getElementById('tiltBeta'), vG = document.getElementById('tiltGamma'), vA = document.getElementById('tiltAlpha');
+
+      waterDelayTimer = setTimeout(() => {
+        waterReady = true;
+        if (waterLoop) {
+          waterLoop.gain.gain.setValueAtTime(0, audioCtx.currentTime);
+          waterLoop.gain.gain.linearRampToValueAtTime(0.35, audioCtx.currentTime + 2.0);
+        }
+        if (waterSynth) {
+          waterSynth.gain.gain.setValueAtTime(0, audioCtx.currentTime);
+          waterSynth.gain.gain.linearRampToValueAtTime(0.06, audioCtx.currentTime + 2.0);
+        }
+        readout.style.opacity = '1';
+      }, 1000);
+
+      const updateBubble = (normX, normY) => {
+        // normX: 0=left, 1=right. normY: 0=top, 1=bottom
+        // Map to SVG space target position
+        const targetSvgX = normX * 200;
+        const targetSvgY = normY * 200;
+        const pt = closestWaterPoint(targetSvgX, targetSvgY);
+
+        // Convert SVG coords to % of container
+        const pctX = (pt.x / 200) * 100;
+        const pctY = (pt.y / 200) * 100;
+        bubble.style.left = pctX + '%';
+        bubble.style.top = pctY + '%';
+
+        // Glow the active stroke
+        const paths = document.querySelectorAll('.water-stroke');
+        paths.forEach((p, i) => {
+          p.setAttribute('stroke', i === pt.stroke ? 'rgba(70,130,200,0.45)' : 'rgba(70,130,200,0.25)');
+        });
+
+        // Audio: use normalized SVG position
+        const audioNx = pt.x / 200;
+        const audioNy = pt.y / 200;
+        return { nx: audioNx, ny: audioNy };
+      };
+
+      waterOrientHandler = e => {
+        const beta = e.beta || 0, gamma = e.gamma || 0, alpha = e.alpha || 0;
+        if (waterBaseAlpha === null) { waterBaseAlpha = alpha; waterSmoothedAlpha = 0; }
+
+        // Hide tilt hint on first movement
+        if (hint && (Math.abs(beta - BETA_NEUTRAL) > 5 || Math.abs(gamma) > 5)) {
+          hint.style.opacity = '0'; hint.style.transition = 'opacity 0.5s ease';
+        }
+
+        // Tilt: asymmetric range -55 (forward) to +15 (back) relative to neutral
+        const relBeta = beta - BETA_NEUTRAL;
+        const cB = Math.max(-TILT_FWD, Math.min(TILT_BACK, relBeta));
+        // ny: 0=top(-55°, high pitch), 1=bottom(+15°, low pitch)
+        const ny = (cB + TILT_FWD) / (TILT_FWD + TILT_BACK);
+
+        // Roll: symmetric
+        const relGamma = gamma;
+        const cG = Math.max(-ROLL_CLAMP, Math.min(ROLL_CLAMP, relGamma));
+        const nx = (cG + ROLL_CLAMP) / (ROLL_CLAMP * 2);
+
+        // Spin: smooth anti-jump
+        let relAlpha = alpha - waterBaseAlpha;
+        if (relAlpha > 180) relAlpha -= 360;
+        if (relAlpha < -180) relAlpha += 360;
+        // Reject jumps > SPIN_MAX_JUMP, interpolate smoothly
+        const alphaDelta = relAlpha - waterSmoothedAlpha;
+        if (Math.abs(alphaDelta) > SPIN_MAX_JUMP) {
+          waterSmoothedAlpha += Math.sign(alphaDelta) * SPIN_MAX_JUMP * 0.3;
+        } else {
+          waterSmoothedAlpha += (relAlpha - waterSmoothedAlpha) * 0.3;
+        }
+        const cA = Math.max(-SPIN_CLAMP, Math.min(SPIN_CLAMP, waterSmoothedAlpha));
+        const nz = (cA + SPIN_CLAMP) / (SPIN_CLAMP * 2);
+
+        vB.textContent = Math.round(cB) + '°';
+        vG.textContent = Math.round(cG) + '°';
+        vA.textContent = Math.round(cA) + '°';
+
+        const audio = updateBubble(nx, ny);
+
+        if (!waterReady || !waterLoop) return;
+        // Invert: top of char (ny=0) = high pitch, bottom (ny=1) = low pitch
+        waterLoop.source.playbackRate.setTargetAtTime(0.5 + (1 - audio.ny) * 1.5, audioCtx.currentTime, 0.1);
+        waterLoop.filter.frequency.setTargetAtTime(200 + (1 - audio.ny) * 4000, audioCtx.currentTime, 0.1);
+        if (waterLfo) waterLfo.frequency.setTargetAtTime(0.1 + nz * 6, audioCtx.currentTime, 0.1);
+        if (waterSynth) waterSynth.filter.frequency.setTargetAtTime(200 + (1 - audio.ny) * 4000, audioCtx.currentTime, 0.1);
+      };
+      window.addEventListener('deviceorientation', waterOrientHandler);
+
+      // Touch fallback
+      sa.addEventListener('touchmove', e => {
+        e.preventDefault();
+        const r = sa.getBoundingClientRect(), t = e.touches[0];
+        const nx = Math.max(0, Math.min(1, (t.clientX - r.left) / r.width));
+        const ny = Math.max(0, Math.min(1, (t.clientY - r.top) / r.height));
+        if (hint) { hint.style.opacity = '0'; hint.style.transition = 'opacity 0.5s ease'; }
+        // Display: map ny back to tilt range (-55 to +15)
+        const displayTilt = Math.round(-TILT_FWD + ny * (TILT_FWD + TILT_BACK));
+        vB.textContent = displayTilt + '°';
+        vG.textContent = Math.round((nx - 0.5) * ROLL_CLAMP * 2) + '°';
+        const audio = updateBubble(nx, ny);
+        if (!waterReady || !waterLoop) return;
+        waterLoop.source.playbackRate.setTargetAtTime(0.5 + (1 - audio.ny) * 1.5, audioCtx.currentTime, 0.1);
+        waterLoop.filter.frequency.setTargetAtTime(200 + (1 - audio.ny) * 4000, audioCtx.currentTime, 0.1);
+      });
+    }
+
+    function cleanupWater() {
+      if (waterOrientHandler) window.removeEventListener('deviceorientation', waterOrientHandler);
+      waterOrientHandler = null; waterReady = false; waterBaseAlpha = null; waterSmoothedAlpha = 0;
+      clearTimeout(waterDelayTimer);
+      document.getElementById('waterReadout').style.opacity = '0';
+      const hint = document.getElementById('waterTiltHint');
+      if (hint) { hint.style.opacity = ''; hint.style.transition = ''; }
+      const bubble = document.getElementById('waterBubble');
+      if (bubble) { bubble.style.left = '50%'; bubble.style.top = '47.5%'; }
+      document.querySelectorAll('.water-stroke').forEach(p => p.setAttribute('stroke', 'rgba(70,130,200,0.25)'));
+      if (waterLoop) {
+        waterLoop.gain.gain.setValueAtTime(waterLoop.gain.gain.value, audioCtx.currentTime);
+        waterLoop.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+        setTimeout(() => {
+          if (waterLfo) try { waterLfo.stop(); } catch (e) { }
+          try { waterLoop.source.stop(); } catch (e) { }
+          waterLoop = null; waterLfo = null; waterLfoGain = null;
+        }, 600);
+      } else { waterLoop = null; waterLfo = null; waterLfoGain = null; }
+      if (waterSynth) {
+        waterSynth.gain.gain.setValueAtTime(waterSynth.gain.gain.value, audioCtx.currentTime);
+        waterSynth.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+        setTimeout(() => { try { waterSynth.osc1.stop(); waterSynth.osc2.stop(); } catch (e) { } waterSynth = null; }, 600);
+      } else { waterSynth = null; }
+    }
+
+    // ═══════════════════════════════════
+    // FIRE — MP3 XY pad + synth swipe + sine pulse
+    // ═══════════════════════════════════
+    let fireLoop = null, fireSynth = null, fireSynthLfo = null, fireSynthLfoGain = null, firePadActive = false, fireLastSwipe = 0, fireIdleTimer = null, fireGhostAnim = null, fireGhostStopped = false;
+
+    // 火 stroke paths in SVG space (0-200), matching fs0-fs3 order
+    const FIRE_STROKES = [
+      [{ x: 70, y: 80 }, { x: 60, y: 95 }, { x: 55, y: 105 }], // fs0: left dot
+      [{ x: 140, y: 70 }, { x: 130, y: 85 }, { x: 120, y: 95 }], // fs1: right dot
+      [{ x: 100, y: 35 }, { x: 100, y: 75 }, { x: 80, y: 120 }, { x: 60, y: 145 }, { x: 40, y: 170 }], // fs2: center left sweep
+      [{ x: 100, y: 90 }, { x: 125, y: 115 }, { x: 145, y: 140 }, { x: 165, y: 170 }] // fs3: center right sweep
+    ];
+    const FIRE_HIT_RADIUS = 28;
+
+    function distToSegment(px, py, ax, ay, bx, by) {
+      const dx = bx - ax, dy = by - ay, len2 = dx * dx + dy * dy;
+      if (len2 === 0) return Math.sqrt((px - ax) * (px - ax) + (py - ay) * (py - ay));
+      let t = ((px - ax) * dx + (py - ay) * dy) / len2;
+      t = Math.max(0, Math.min(1, t));
+      const cx = ax + t * dx, cy = ay + t * dy;
+      return Math.sqrt((px - cx) * (px - cx) + (py - cy) * (py - cy));
+    }
+
+    function nearFireStroke(svgX, svgY) {
+      for (const stroke of FIRE_STROKES) {
+        for (let i = 0; i < stroke.length - 1; i++) {
+          if (distToSegment(svgX, svgY, stroke[i].x, stroke[i].y, stroke[i + 1].x, stroke[i + 1].y) < FIRE_HIT_RADIUS) return true;
+        }
+      }
+      return false;
+    }
+
+    // Sample a point along a polyline stroke at parameter t (0-1)
+    function strokePointAt(stroke, t) {
+      let totalLen = 0; const segLens = [];
+      for (let i = 0; i < stroke.length - 1; i++) {
+        const dx = stroke[i + 1].x - stroke[i].x, dy = stroke[i + 1].y - stroke[i].y;
+        segLens.push(Math.sqrt(dx * dx + dy * dy)); totalLen += segLens[i];
+      }
+      let target = t * totalLen, accum = 0;
+      for (let i = 0; i < segLens.length; i++) {
+        if (accum + segLens[i] >= target || i === segLens.length - 1) {
+          const segT = segLens[i] > 0 ? (target - accum) / segLens[i] : 0;
+          return { x: stroke[i].x + (stroke[i + 1].x - stroke[i].x) * segT, y: stroke[i].y + (stroke[i + 1].y - stroke[i].y) * segT };
+        }
+        accum += segLens[i];
+      }
+      return { x: stroke[0].x, y: stroke[0].y };
+    }
+
+    function startFireGhost() {
+      const gh = document.getElementById('fireTraceGhost');
+      if (!gh) return;
+      gh.style.opacity = '1'; fireGhostStopped = false;
+      let strokeIdx = 0;
+      const speeds = [800, 800, 2500, 2500]; // alternating slow/fast
+
+      function traceStroke() {
+        if (fireGhostStopped) return;
+        const stroke = FIRE_STROKES[strokeIdx];
+        const dur = speeds[strokeIdx % speeds.length];
+        const sa = document.getElementById('fireStrokeArea');
+        if (!sa) return;
+        const start = Date.now();
+        const isFast = dur < 1500;
+        gh.style.width = isFast ? '18px' : '12px'; gh.style.height = isFast ? '18px' : '12px';
+        gh.style.background = isFast ? 'rgba(220,60,40,0.55)' : 'rgba(220,60,40,0.25)';
+        gh.style.boxShadow = isFast ? '0 0 14px rgba(220,60,40,0.5)' : '0 0 6px rgba(220,60,40,0.2)';
+
+        function step() {
+          if (fireGhostStopped) return;
+          const t = Math.min((Date.now() - start) / dur, 1);
+          const pt = strokePointAt(stroke, t);
+          gh.style.left = (pt.x / 200 * sa.clientWidth) + 'px';
+          gh.style.top = (pt.y / 200 * sa.clientHeight) + 'px';
+          if (t < 1) fireGhostAnim = requestAnimationFrame(step);
+          else setTimeout(() => { if (fireGhostStopped) return; strokeIdx = (strokeIdx + 1) % FIRE_STROKES.length; traceStroke(); }, 600);
+        }
+        fireGhostAnim = requestAnimationFrame(step);
+      }
+      traceStroke();
+    }
+
+    function stopFireGhost() {
+      fireGhostStopped = true;
+      if (fireGhostAnim) { cancelAnimationFrame(fireGhostAnim); fireGhostAnim = null; }
+      const gh = document.getElementById('fireTraceGhost');
+      if (gh) gh.style.opacity = '0';
+    }
+
+    function initFire() {
+      fireLoop = playBufferWithChain('fire_long', true);
+      if (fireLoop) { fireLoop.filter.frequency.value = 400; fireLoop.filter.Q.value = 1; fireLoop.gain.gain.value = 0; }
+
+      fireSynth = createDrone(174.6, 'sine', 4);
+      fireSynth.filter.frequency.value = 500; fireSynth.gain.gain.value = 0;
+      fireSynthLfo = audioCtx.createOscillator();
+      fireSynthLfoGain = audioCtx.createGain();
+      fireSynthLfo.type = 'sine'; fireSynthLfo.frequency.value = 0.5;
+      fireSynthLfoGain.gain.value = 0.04;
+      fireSynthLfo.connect(fireSynthLfoGain);
+      fireSynthLfoGain.connect(fireSynth.gain.gain);
+      fireSynthLfo.start();
+      fireSynth.gain.gain.setValueAtTime(0, audioCtx.currentTime);
+      fireSynth.gain.gain.linearRampToValueAtTime(0.07, audioCtx.currentTime + 1.5);
+
+      const pad = document.getElementById('firePad'), cross = document.getElementById('fireCrosshair');
+      const ghost = document.getElementById('fireGhost');
+      ghost.style.opacity = '1';
+
+      // Start trace ghost
+      fireGhostStopped = false;
+      startFireGhost();
+
+      const fireTouch = () => {
+        if (fireSynth) fireSynth.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1.0);
+        if (fireIdleTimer) { clearTimeout(fireIdleTimer); fireIdleTimer = null; }
+      };
+      const fireRelease = () => {
+        if (fireIdleTimer) clearTimeout(fireIdleTimer);
+        fireIdleTimer = setTimeout(() => {
+          if (fireSynth) fireSynth.gain.gain.linearRampToValueAtTime(0.07, audioCtx.currentTime + 2.0);
+        }, 2000);
+      };
+
+      const mv = (x, y) => {
+        const r = pad.getBoundingClientRect();
+        const nx = Math.max(0, Math.min(1, (x - r.left) / r.width)), ny = Math.max(0, Math.min(1, (y - r.top) / r.height));
+        cross.style.left = (nx * 100) + '%'; cross.style.top = (ny * 100) + '%';
+        const logFreq = 300 * Math.pow(20, nx);
+        const q = 1 + (1 - ny) * 17;
+        if (fireLoop) {
+          fireLoop.filter.frequency.setTargetAtTime(logFreq, audioCtx.currentTime, 0.05);
+          fireLoop.filter.Q.setTargetAtTime(q, audioCtx.currentTime, 0.05);
+          fireLoop.gain.gain.setTargetAtTime(0.3, audioCtx.currentTime, 0.05);
+        }
+        const intensity = (nx + (1 - ny)) / 2;
+        pad.style.background = `rgba(220,60,40,${intensity * 0.4})`;
+      };
+      pad.addEventListener('touchstart', e => { e.preventDefault(); firePadActive = true; ghost.style.opacity = '0'; fireTouch(); mv(e.touches[0].clientX, e.touches[0].clientY); });
+      pad.addEventListener('touchmove', e => { e.preventDefault(); if (firePadActive) mv(e.touches[0].clientX, e.touches[0].clientY); });
+      pad.addEventListener('touchend', () => {
+        firePadActive = false; cross.style.left = '50%'; cross.style.top = '50%';
+        pad.style.background = 'transparent';
+        if (fireLoop) fireLoop.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+        fireRelease();
+      });
+
+      // Stroke swipe area
+      const sa = document.getElementById('fireStrokeArea');
+      const svg = document.getElementById('fireCharSvg');
+      const fl = document.getElementById('fireFlameLayer');
+      let ss = null, sTime = 0;
+
+      sa.addEventListener('touchstart', e => {
+        e.preventDefault();
+        stopFireGhost();
+        fireTouch();
+        ss = { x: e.touches[0].clientX, y: e.touches[0].clientY }; sTime = Date.now();
+      });
+      sa.addEventListener('touchmove', e => {
+        e.preventDefault(); if (!ss) return;
+        const now = Date.now(); if (now - fireLastSwipe < 60) return;
+        const tx = e.touches[0].clientX, ty = e.touches[0].clientY;
+        const dx = tx - ss.x, dy = ty - ss.y, dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 12) {
+          const r = sa.getBoundingClientRect();
+          const localX = tx - r.left, localY = ty - r.top;
+          const svgX = (localX / r.width) * 200, svgY = (localY / r.height) * 200;
+
+          if (nearFireStroke(svgX, svgY)) {
+            fireLastSwipe = now;
+            const dt = now - sTime;
+            const speed = dt > 0 ? dist / dt : 1;
+            spawnFlame(localX, localY, fl);
+            triggerFlameSound(speed);
+            // Glow only the nearest stroke
+            svg.querySelectorAll('.fire-stroke').forEach((p, i) => {
+              const stroke = FIRE_STROKES[i];
+              let near = false;
+              for (let j = 0; j < stroke.length - 1; j++) {
+                if (distToSegment(svgX, svgY, stroke[j].x, stroke[j].y, stroke[j + 1].x, stroke[j + 1].y) < FIRE_HIT_RADIUS) { near = true; break; }
+              }
+              if (near) {
+                const glow = Math.min(0.6, 0.35 + speed * 0.3);
+                p.setAttribute('stroke', `rgba(220,60,40,${glow})`);
+                p.setAttribute('stroke-dasharray', 'none');
+                setTimeout(() => { p.setAttribute('stroke', 'rgba(220,60,40,0.28)'); p.setAttribute('stroke-dasharray', '4 6'); }, 250);
+              }
+            });
+          }
+          ss = { x: tx, y: ty }; sTime = now;
+        }
+      });
+      sa.addEventListener('touchend', () => { ss = null; fireRelease(); });
+    }
+    function spawnFlame(x, y, c) { const el = document.createElement('div'); el.className = 'flame-particle'; el.style.background = `hsl(${10 + Math.random() * 30},90%,55%)`; el.style.left = x + 'px'; el.style.top = y + 'px'; const s = 6 + Math.random() * 10; el.style.width = s + 'px'; el.style.height = s + 'px'; c.appendChild(el); setTimeout(() => el.remove(), 800); }
+    function triggerFlameSound(speed) {
+      // speed: ~0.1 (slow) to ~2.0+ (fast)
+      const spd = Math.min(speed, 2.0);
+      const norm = spd / 2.0; // 0 to 1
+      const t = audioCtx.currentTime;
+      // Duration: slow=80ms, fast=200ms
+      const dur = 0.08 + norm * 0.12;
+      const bs = Math.floor(audioCtx.sampleRate * dur);
+      const buf = audioCtx.createBuffer(1, bs, audioCtx.sampleRate);
+      const d = buf.getChannelData(0); for (let i = 0; i < bs; i++)d[i] = Math.random() * 2 - 1;
+      const s = audioCtx.createBufferSource(); s.buffer = buf;
+      // Frequency: slow=800Hz (dark), fast=3500Hz (bright)
+      const bp = audioCtx.createBiquadFilter(); bp.type = 'bandpass';
+      bp.frequency.value = 800 + norm * 2700 + Math.random() * 500;
+      // Q: slow=4 (narrow), fast=1.5 (wide)
+      bp.Q.value = 4 - norm * 2.5;
+      // Volume: slow=0.06, fast=0.25
+      const vol = 0.06 + norm * 0.19;
+      const e = audioCtx.createGain(); e.gain.setValueAtTime(vol, t); e.gain.exponentialRampToValueAtTime(0.001, t + dur + 0.05);
+      s.connect(bp); bp.connect(e); e.connect(audioCtx.destination); s.start(t);
+    }
+    function cleanupFire() {
+      stopFireGhost();
+      if (fireLoop) {
+        fireLoop.gain.gain.setValueAtTime(fireLoop.gain.gain.value, audioCtx.currentTime);
+        fireLoop.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+        setTimeout(() => { try { fireLoop.source.stop(); } catch (e) { } fireLoop = null; }, 600);
+      } else { fireLoop = null; }
+      if (fireSynth) {
+        fireSynth.gain.gain.setValueAtTime(fireSynth.gain.gain.value, audioCtx.currentTime);
+        fireSynth.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+        setTimeout(() => {
+          if (fireSynthLfo) try { fireSynthLfo.stop(); } catch (e) { }
+          try { fireSynth.osc1.stop(); fireSynth.osc2.stop(); } catch (e) { }
+          fireSynth = null; fireSynthLfo = null; fireSynthLfoGain = null;
+        }, 600);
+      } else { fireSynth = null; fireSynthLfo = null; fireSynthLfoGain = null; }
+      if (fireIdleTimer) { clearTimeout(fireIdleTimer); fireIdleTimer = null; }
+      const pad = document.getElementById('firePad');
+      if (pad) pad.style.background = 'transparent';
+      const fl = document.getElementById('fireFlameLayer');
+      if (fl) fl.innerHTML = '';
+      const svg = document.getElementById('fireCharSvg');
+      if (svg) svg.querySelectorAll('.fire-stroke').forEach(p => { p.setAttribute('stroke', 'rgba(220,60,40,0.28)'); p.setAttribute('stroke-dasharray', '4 6'); });
+    }
+
+    // ═══════════════════════════════════
+    // EARTH — earthquake + MP3 bed
+    // ═══════════════════════════════════
+    let earthDrone = null, earthBed = null, earthAnimFrame = null, earthStartTime = null, earthLastVib = 0, earthPulseContainer = null, earthQuaking = false, earthFirstQuake = true;
+    const QUAKE_TIMES = [6000, 11000, 21000];
+    let earthQuakeTime = 6000;
+
+    function createDrone(f, t, d) {
+      const o1 = audioCtx.createOscillator(), o2 = audioCtx.createOscillator();
+      const g = audioCtx.createGain(), fl = audioCtx.createBiquadFilter();
+      o1.type = t || 'sine'; o1.frequency.value = f; o2.type = 'sine'; o2.frequency.value = f * 1.002;
+      if (d) { o1.detune.value = d; o2.detune.value = -d; }
+      fl.type = 'lowpass'; fl.frequency.value = 800; fl.Q.value = 2; g.gain.value = 0;
+      o1.connect(fl); o2.connect(fl); fl.connect(g); g.connect(audioCtx.destination);
+      o1.start(); o2.start();
+      return { osc1: o1, osc2: o2, gain: g, filter: fl };
+    }
+
+    function initEarth() {
+      showCue('earthCue');
+      earthDrone = createDrone(55, 'sine', 2); earthDrone.filter.frequency.value = 400;
+      const ta = document.getElementById('earthTouch');
+      earthPulseContainer = ta.parentElement;
+      ta.addEventListener('touchstart', earthTS);
+      ta.addEventListener('touchend', earthTE);
+      ta.addEventListener('touchcancel', earthTE);
+    }
+
+    function earthTS(e) {
+      e.preventDefault(); hideCue('earthCue');
+      earthStartTime = Date.now(); earthLastVib = 0; earthQuaking = false;
+      earthQuakeTime = earthFirstQuake ? 6000 : QUAKE_TIMES[Math.floor(Math.random() * QUAKE_TIMES.length)];
+      earthDrone.gain.gain.setValueAtTime(0, audioCtx.currentTime);
+
+      // Start MP3 bed
+      earthBed = playBuffer('earth_long', true, 0);
+      earthChargeLoop();
+    }
+
+    function earthChargeLoop() {
+      if (!earthStartTime) return;
+      const elapsed = Date.now() - earthStartTime;
+      const ta = document.getElementById('earthTouch');
+
+      if (earthQuaking) {
+        earthStartTime = Date.now(); earthQuaking = false; earthLastVib = 0;
+        earthQuakeTime = QUAKE_TIMES[Math.floor(Math.random() * QUAKE_TIMES.length)];
+        earthDrone.gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+        if (earthBed) earthBed.gain.gain.setValueAtTime(0.01, audioCtx.currentTime);
+        ta.style.boxShadow = 'none'; ta.style.borderColor = 'rgba(139,94,60,0.35)'; ta.style.background = 'transparent';
+        earthAnimFrame = requestAnimationFrame(earthChargeLoop);
+        return;
+      }
+
+      const progress = Math.min(elapsed / earthQuakeTime, 1);
+
+      // Synth drone volume
+      earthDrone.gain.gain.setValueAtTime(progress * 0.3, audioCtx.currentTime);
+      // MP3 bed always softer than synth
+      if (earthBed) earthBed.gain.gain.setValueAtTime(progress * 0.15, audioCtx.currentTime);
+
+      // Progressive glow
+      const glowSize = 20 + progress * 80, glowOp = 0.05 + progress * 0.35;
+      const borderOp = 0.25 + progress * 0.6, bgOp = progress * 0.2;
+      ta.style.boxShadow = `0 0 ${glowSize}px rgba(139,94,60,${glowOp})`;
+      ta.style.borderColor = `rgba(139,94,60,${borderOp})`;
+      ta.style.background = `rgba(139,94,60,${bgOp})`;
+
+      // Progressive haptic
+      const now = Date.now(), vibInterval = 800 - progress * 650;
+      if (now - earthLastVib > vibInterval) {
+        const vibStr = Math.round(30 + progress * 120);
+        if (navigator.vibrate) navigator.vibrate(vibStr);
+        earthLastVib = now; spawnEarthPulse();
+      }
+
+      if (progress >= 1) { triggerEarthquake(); return; }
+      earthAnimFrame = requestAnimationFrame(earthChargeLoop);
+    }
+
+    function triggerEarthquake() {
+      earthQuaking = true; earthFirstQuake = false;
+      earthQuakeTime = QUAKE_TIMES[Math.floor(Math.random() * QUAKE_TIMES.length)];
+      const ta = document.getElementById('earthTouch');
+      if (navigator.vibrate) navigator.vibrate([200, 80, 300, 80, 200]);
+      const page = document.getElementById('earth-page');
+      page.style.animation = 'screenShake 0.6s ease';
+      page.classList.add('quaking');
+      setTimeout(() => { page.style.animation = ''; page.classList.remove('quaking'); }, 700);
+      ta.style.boxShadow = '0 0 120px rgba(139,94,60,0.7)';
+      ta.style.borderColor = 'rgba(139,94,60,1)';
+      ta.style.background = 'rgba(139,94,60,0.35)';
+      earthDrone.gain.gain.setValueAtTime(0.45, audioCtx.currentTime);
+      earthDrone.gain.gain.linearRampToValueAtTime(0.02, audioCtx.currentTime + 1.5);
+      if (earthBed) {
+        earthBed.gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+        earthBed.gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 1.5);
+      }
+      setTimeout(() => { if (earthStartTime) earthAnimFrame = requestAnimationFrame(earthChargeLoop); }, 1500);
+    }
+
+    function earthTE() {
+      earthStartTime = null; earthQuaking = false;
+      if (earthAnimFrame) { cancelAnimationFrame(earthAnimFrame); earthAnimFrame = null; }
+      if (navigator.vibrate) navigator.vibrate(0);
+      const ta = document.getElementById('earthTouch');
+      ta.style.boxShadow = 'none'; ta.style.borderColor = 'rgba(139,94,60,0.35)'; ta.style.background = 'transparent';
+      if (earthDrone) earthDrone.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+      if (earthBed) {
+        earthBed.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+        setTimeout(() => { try { earthBed.source.stop(); } catch (e) { } earthBed = null; }, 350);
+      }
+      showCue('earthCue');
+    }
+
+    function spawnEarthPulse() {
+      const el = document.createElement('div'); el.className = 'earth-pulse';
+      const ta = document.getElementById('earthTouch');
+      const r = ta.getBoundingClientRect(), pr = earthPulseContainer.getBoundingClientRect();
+      const sz = ta.clientWidth; el.style.width = sz + 'px'; el.style.height = sz + 'px';
+      el.style.left = (r.left - pr.left + r.width / 2 - sz / 2) + 'px';
+      el.style.top = (r.top - pr.top + r.height / 2 - sz / 2) + 'px';
+      earthPulseContainer.appendChild(el); setTimeout(() => el.remove(), 1000);
+    }
+
+    function cleanupEarth() {
+      earthStartTime = null; earthQuaking = false; earthFirstQuake = true;
+      if (earthAnimFrame) { cancelAnimationFrame(earthAnimFrame); earthAnimFrame = null; }
+      if (earthDrone) {
+        earthDrone.gain.gain.setValueAtTime(earthDrone.gain.gain.value, audioCtx.currentTime);
+        earthDrone.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+        setTimeout(() => { try { earthDrone.osc1.stop(); earthDrone.osc2.stop(); } catch (e) { } earthDrone = null; }, 600);
+      } else { earthDrone = null; }
+      if (earthBed) {
+        earthBed.gain.gain.setValueAtTime(earthBed.gain.gain.value, audioCtx.currentTime);
+        earthBed.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+        setTimeout(() => { try { earthBed.source.stop(); } catch (e) { } earthBed = null; }, 600);
+      } else { earthBed = null; }
+      if (navigator.vibrate) navigator.vibrate(0);
+      const ta = document.getElementById('earthTouch');
+      ta.style.boxShadow = 'none'; ta.style.borderColor = 'rgba(139,94,60,0.35)'; ta.style.background = 'transparent';
+      ta.removeEventListener('touchstart', earthTS); ta.removeEventListener('touchend', earthTE); ta.removeEventListener('touchcancel', earthTE);
+    }
+
+    document.addEventListener('touchmove', e => { if (currentElement) e.preventDefault(); }, { passive: false });
+  </script>
+</body>
+
+</html>
