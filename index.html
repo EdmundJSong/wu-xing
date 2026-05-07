@@ -7,7 +7,7 @@
     content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Five Phases</title>
+  <title>5 Phases</title>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <style>
@@ -1263,13 +1263,13 @@
 
   <!-- Locked screen -->
   <div class="status-screen" id="lockedScreen">
-    <h1>五行</h1>
+    <h1>5 Phases</h1>
     <p class="sub">Performance has not yet begun.</p>
   </div>
 
   <!-- End screen -->
   <div class="status-screen hidden" id="endScreen">
-    <h1>五行</h1>
+    <h1>5 Phases</h1>
     <div class="reminder">
       please return your phone to silent mode<br>
       thank you
@@ -1278,7 +1278,7 @@
 
   <!-- Permission -->
   <div class="permission-overlay hidden" id="permissionOverlay">
-    <h2>五行</h2>
+    <h2>5 Phases</h2>
     <p>This experience uses your device's<br>motion sensors, audio, and haptics.</p>
     <div class="setup-hint">unmute · volume up · brightness up</div>
     <button class="permission-btn" id="startBtn">Enter</button>
@@ -1301,7 +1301,7 @@
       <div class="circle-el c-earth" id="el-earth" onclick="openElement('earth')"><span class="char">土</span><span
           class="elname">Earth</span></div>
       <div class="circle-center" id="circleCenter" onclick="cycleLandingState()">
-        <h1 id="centerTitle">五行</h1>
+        <h1 id="centerTitle">5 Phases</h1>
         <div class="subtitle" id="centerSub">Five Elements</div>
       </div>
     </div>
@@ -1698,7 +1698,7 @@
       ke: [0, 4, 2, 1, 3]
     };
     const STATE_LABELS = {
-      wuxing: { title: '五行', sub: 'Five Elements' },
+      wuxing: { title: '5 Phases', sub: 'Five Elements' },
       sheng: { title: '生', sub: 'Creation' },
       ke: { title: '克', sub: 'Destruction' }
     };
